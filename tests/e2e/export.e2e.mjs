@@ -53,6 +53,16 @@ try {
   step(`demo project: cover + ${expected - 1} headline slides`);
   await page.screenshot({ path: `${OUT}/demo.png` });
 
+  // a comic slide (characters + speech bubbles) exports like any other
+  const comicIndex = news.headlines.findIndex((h) => h.publisher === 'MIT Technology Review');
+  if (comicIndex >= 0) {
+    await page.click(`.slides li:nth-child(${comicIndex + 2})`);
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.click('[data-testid=export-one]')]);
+    await dl.saveAs(`${OUT}/comic-${dl.suggestedFilename()}`);
+    assertSpec(await inspectMp4(new Uint8Array(readFileSync(`${OUT}/comic-${dl.suggestedFilename()}`))), { duration: 9 });
+    step(`comic slide export: ${dl.suggestedFilename()} (9 s, bubbles + characters) matches spec`);
+  }
+
   await page.click('text=New project');
   await page.waitForFunction(() => document.querySelectorAll('.slides li').length === 1);
 

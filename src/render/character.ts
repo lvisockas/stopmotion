@@ -1,0 +1,256 @@
+import { mulberry32, hashInts } from './prng';
+import type { Ctx2D } from './types';
+
+/**
+ * Original construction-paper cutout kids: big round head, two touching oval
+ * eyes, mitten hands, a coat and a hat or hair. Flat colours with a dark
+ * cut edge. Everything is derived from the member's seed.
+ */
+/** Design units of the drawing below. */
+const BASE_W = 200;
+const BASE_H = 330;
+/** On-frame size: about 30% of the frame height. */
+export const CHARACTER_W = BASE_W * 1.22;
+export const CHARACTER_H = BASE_H * 1.22;
+
+const SKIN = ['#f6d2b1', '#eab58c', '#c98e60', '#8f5b3a', '#f2c7a1', '#5e3a24'];
+const COATS = ['#d9412b', '#2f6fd1', '#3f9b47', '#e3a21a', '#7b4bb7', '#1f8f8a', '#e05d9c', '#56606b', '#f07f24'];
+const HATS = ['#2f6fd1', '#d9412b', '#3f9b47', '#f2d43a', '#1c1c1c', '#e05d9c', '#1f8f8a', '#ffffff'];
+const HAIR = ['#2a1a10', '#6b3e1f', '#e0b04a', '#b5391d', '#1c1c1c', '#8a8a8a'];
+const MITTENS = ['#d9412b', '#f2d43a', '#3f9b47', '#2f6fd1', '#56606b'];
+const INK = '#1b1714';
+
+export type HeadStyle = 'beanie' | 'striped' | 'cap' | 'spiky' | 'bob';
+const STYLES: HeadStyle[] = ['beanie', 'striped', 'cap', 'spiky', 'bob'];
+
+export interface Look {
+  skin: string;
+  coat: string;
+  hat: string;
+  hair: string;
+  mitten: string;
+  style: HeadStyle;
+  /** Head outline wobble, so each cutout looks hand-cut. */
+  wobble: number[];
+  buttons: boolean;
+}
+
+export function lookFor(seed: number): Look {
+  const rng = mulberry32(hashInts(seed, 0x5eed));
+  const pick = <T,>(a: T[]) => a[Math.floor(rng() * a.length)];
+  return {
+    skin: pick(SKIN),
+    coat: pick(COATS),
+    hat: pick(HATS),
+    hair: pick(HAIR),
+    mitten: pick(MITTENS),
+    style: pick(STYLES),
+    wobble: Array.from({ length: 28 }, () => (rng() - 0.5) * 0.035),
+    buttons: rng() < 0.5,
+  };
+}
+
+export interface Pose {
+  /** Mouth open (talking, on alternate shots). */
+  mouthOpen: boolean;
+  /** -1 looks left, 1 looks right. */
+  gaze: number;
+}
+
+function outline(ctx: Ctx2D, s: number) {
+  ctx.lineWidth = 3.2 * s;
+  ctx.strokeStyle = INK;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+}
+
+function blob(ctx: Ctx2D, cx: number, cy: number, r: number, wobble: number[]) {
+  ctx.beginPath();
+  const n = wobble.length;
+  for (let i = 0; i <= n; i++) {
+    const a = (i / n) * Math.PI * 2;
+    const rr = r * (1 + wobble[i % n]);
+    const x = cx + Math.cos(a) * rr;
+    const y = cy + Math.sin(a) * rr;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+}
+
+/** Draws a character in a w×h box centred on the origin, feet on the bottom edge. */
+export function drawCharacter(ctx: Ctx2D, look: Look, w: number, h: number, pose: Pose): void {
+  const s = Math.min(w / BASE_W, h / BASE_H);
+  const floor = h / 2;
+  const g = pose.gaze;
+
+  // feet
+  ctx.fillStyle = INK;
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.ellipse(side * 34 * s, floor - 11 * s, 30 * s, 11 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // coat
+  const bodyBottom = floor - 16 * s;
+  const bodyTop = bodyBottom - 118 * s;
+  ctx.beginPath();
+  ctx.moveTo(-80 * s, bodyBottom);
+  ctx.lineTo(80 * s, bodyBottom);
+  ctx.lineTo(60 * s, bodyTop);
+  ctx.lineTo(-60 * s, bodyTop);
+  ctx.closePath();
+  ctx.fillStyle = look.coat;
+  ctx.fill();
+  outline(ctx, s);
+  ctx.beginPath();
+  ctx.moveTo(0, bodyTop + 8 * s);
+  ctx.lineTo(0, bodyBottom);
+  ctx.lineWidth = 2.4 * s;
+  ctx.strokeStyle = INK;
+  ctx.stroke();
+  if (look.buttons) {
+    ctx.fillStyle = INK;
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.arc(-12 * s, bodyTop + (34 + i * 28) * s, 4 * s, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // mittens
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.arc(side * 82 * s, bodyBottom - 42 * s, 19 * s, 0, Math.PI * 2);
+    ctx.fillStyle = look.mitten;
+    ctx.fill();
+    outline(ctx, s);
+  }
+
+  // head
+  const r = 100 * s;
+  const hy = bodyTop - 66 * s;
+  if (look.style === 'bob') {
+    // hair behind the head
+    ctx.beginPath();
+    ctx.ellipse(0, hy + 8 * s, r * 1.08, r * 1.02, 0, 0, Math.PI * 2);
+    ctx.fillStyle = look.hair;
+    ctx.fill();
+    outline(ctx, s);
+  }
+  blob(ctx, 0, hy, r, look.wobble);
+  ctx.fillStyle = look.skin;
+  ctx.fill();
+  outline(ctx, s);
+
+  // headwear
+  const domeTop = (fill: string) => {
+    ctx.beginPath();
+    ctx.arc(0, hy, r * 1.01, Math.PI * 1.08, Math.PI * 1.92);
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+    outline(ctx, s);
+  };
+  switch (look.style) {
+    case 'beanie':
+    case 'striped': {
+      domeTop(look.hat);
+      if (look.style === 'striped') {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(0, hy, r * 0.99, Math.PI * 1.08, Math.PI * 1.92);
+        ctx.closePath();
+        ctx.clip();
+        ctx.fillStyle = 'rgba(255,255,255,0.75)';
+        for (let i = 0; i < 3; i++) ctx.fillRect(-r, hy - r + (14 + i * 22) * s, 2 * r, 9 * s);
+        ctx.restore();
+      }
+      // band
+      const bandY = hy - r * 0.44;
+      ctx.beginPath();
+      ctx.rect(-r * 0.9, bandY - 13 * s, r * 1.8, 20 * s);
+      ctx.fillStyle = look.style === 'striped' ? '#ffffff' : look.mitten;
+      ctx.fill();
+      outline(ctx, s);
+      // pompom
+      ctx.beginPath();
+      ctx.arc(0, hy - r - 10 * s, 17 * s, 0, Math.PI * 2);
+      ctx.fillStyle = look.mitten;
+      ctx.fill();
+      outline(ctx, s);
+      break;
+    }
+    case 'cap': {
+      domeTop(look.hat);
+      ctx.beginPath();
+      ctx.ellipse(g * r * 0.62, hy - r * 0.34, r * 0.62, 12 * s, 0, 0, Math.PI * 2);
+      ctx.fillStyle = look.hat;
+      ctx.fill();
+      outline(ctx, s);
+      break;
+    }
+    case 'spiky': {
+      ctx.beginPath();
+      const spikes = 7;
+      ctx.moveTo(-r * 0.95, hy - r * 0.3);
+      for (let i = 0; i <= spikes; i++) {
+        const a = Math.PI * (1.05 + (0.9 * i) / spikes);
+        const tipR = i % 2 === 0 ? r * 1.22 : r * 0.98;
+        ctx.lineTo(Math.cos(a) * tipR, hy + Math.sin(a) * tipR);
+      }
+      ctx.lineTo(r * 0.95, hy - r * 0.3);
+      ctx.quadraticCurveTo(0, hy - r * 0.55, -r * 0.95, hy - r * 0.3);
+      ctx.closePath();
+      ctx.fillStyle = look.hair;
+      ctx.fill();
+      outline(ctx, s);
+      break;
+    }
+    case 'bob': {
+      // fringe
+      ctx.beginPath();
+      ctx.arc(0, hy, r * 1.01, Math.PI * 1.05, Math.PI * 1.95);
+      ctx.quadraticCurveTo(0, hy - r * 0.35, -r * 0.98, hy - r * 0.32);
+      ctx.closePath();
+      ctx.fillStyle = look.hair;
+      ctx.fill();
+      outline(ctx, s);
+      break;
+    }
+  }
+
+  // eyes: two touching ovals, pupils toward the gaze
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.ellipse(side * 25 * s, hy - 8 * s, 26 * s, 31 * s, side * 0.18, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.lineWidth = 2.6 * s;
+    ctx.strokeStyle = INK;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(side * 11 * s + g * 9 * s, hy - 6 * s, 5.5 * s, 0, Math.PI * 2);
+    ctx.fillStyle = INK;
+    ctx.fill();
+  }
+
+  // mouth
+  const my = hy + 48 * s;
+  const mx = g * 6 * s;
+  if (pose.mouthOpen) {
+    ctx.beginPath();
+    ctx.ellipse(mx, my, 17 * s, 12 * s, 0, 0, Math.PI * 2);
+    ctx.fillStyle = INK;
+    ctx.fill();
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(mx - 15 * s, my - 2 * s);
+    ctx.quadraticCurveTo(mx, my + 5 * s, mx + 15 * s, my - 2 * s);
+    ctx.lineWidth = 3.2 * s;
+    ctx.strokeStyle = INK;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
+}

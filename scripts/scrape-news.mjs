@@ -172,7 +172,8 @@ settled.forEach((r, i) => (r.status === 'fulfilled' ? items.push(...r.value) : c
 items.sort((a, b) => b.published.localeCompare(a.published));
 
 mkdirSync(OUT, { recursive: true });
-for (const f of readdirSync(OUT)) rmSync(`${OUT}/${f}`);
+// dialogue.json is hand-written; only the scraped files are replaced
+for (const f of readdirSync(OUT)) if (/\.jpg$|^news\.json$/.test(f)) rmSync(`${OUT}/${f}`);
 
 const headlines = [];
 for (const item of items) {

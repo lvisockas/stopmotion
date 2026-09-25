@@ -11,6 +11,7 @@ export interface TextSpec {
 }
 
 export const TITLE_SPEC: TextSpec = { weight: 800, maxSize: 76, minSize: 40, maxLines: 3, lineHeight: 1.12 };
+export const BUBBLE_SPEC: TextSpec = { weight: 800, maxSize: 36, minSize: 24, maxLines: 4, lineHeight: 1.2 };
 export const SUBTITLE_SPEC: TextSpec = { weight: 500, maxSize: 42, minSize: 26, maxLines: 4, lineHeight: 1.3 };
 
 export interface TextBlock {

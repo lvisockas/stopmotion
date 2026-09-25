@@ -31,6 +31,20 @@ export interface Effects {
   flicker: boolean;
 }
 
+/** A paper-cutout character. Its whole look derives from `seed`. */
+export interface CastMember {
+  seed: number;
+  name: string;
+}
+
+/** One speech bubble, said by cast[speaker]. */
+export interface Line {
+  speaker: number;
+  text: string;
+}
+
+export const MAX_CAST = 3;
+
 export interface Slide {
   id: string;
   /** uint32; drives layout, rotations, jitter and every effect. */
@@ -48,6 +62,9 @@ export interface Slide {
   /** White paper border around each screenshot, like a cutout. */
   cutoutBorder: boolean;
   effects: Effects;
+  /** Comic layer: characters standing at the bottom, talking in bubbles. */
+  cast: CastMember[];
+  lines: Line[];
 }
 
 /** Anything drawImage accepts and that has intrinsic dimensions. */

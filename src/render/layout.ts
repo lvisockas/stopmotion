@@ -1,5 +1,6 @@
 import { rngFor, signed, STREAM } from './prng';
-import { layoutText, SUBTITLE_SPEC, TITLE_SPEC, type TextBlock } from './text';
+import { CHARACTER_H, CHARACTER_W, lookFor, type Look } from './character';
+import { BUBBLE_SPEC, layoutText, SUBTITLE_SPEC, TITLE_SPEC, type TextBlock } from './text';
 import { HEIGHT, SAFE_MARGIN, WIDTH, type Ctx2D, type Slide, type SlideImage } from './types';
 
 export interface Rect {
@@ -37,12 +38,37 @@ export interface TextElement {
   pad: number;
 }
 
-export type Element = ImageElement | TextElement;
+export interface CharacterElement {
+  kind: 'character';
+  /** Index into slide.cast. */
+  index: number;
+  look: Look;
+  place: Placement;
+  /** -1 looks left, 0 ahead, 1 right. */
+  gaze: number;
+}
+
+export type Element = ImageElement | TextElement | CharacterElement;
+
+/** A speech bubble at rest (before any stacking with the previous bubble). */
+export interface Bubble {
+  speaker: number;
+  block: TextBlock;
+  x: number;
+  bottom: number;
+  w: number;
+  h: number;
+  /** Where the tail points: just above the speaker's head. */
+  tipX: number;
+  tipY: number;
+}
 
 export interface Layout {
-  /** In drop order: title, screenshots (in slide order), subtitle. */
+  /** In drop order: title, screenshots, subtitle (top-anchored with a cast), characters. */
   elements: Element[];
   imageArea: Rect;
+  /** One per slide.lines entry; null when the speaker doesn't exist. */
+  bubbles: (Bubble | null)[];
 }
 
 /** Keep resting elements this far inside the safe margin so jitter can't cross it. */
@@ -51,6 +77,11 @@ const LABEL_PAD = 26;
 const GAP = 36;
 const MAX_IMAGE_TILT = (5 * Math.PI) / 180;
 const MAX_TEXT_TILT = (1.6 * Math.PI) / 180;
+const MAX_CHARACTER_TILT = (2 * Math.PI) / 180;
+const BUBBLE_PAD_X = 26;
+const BUBBLE_PAD_Y = 18;
+/** Horizontal slots for 1, 2 or 3 characters, as fractions of the safe width. */
+const CAST_SLOTS = [[0.5], [0.2, 0.8], [0.16, 0.5, 0.84]];
 
 export const SAFE: Rect = {
   x: SAFE_MARGIN + JITTER_ROOM,
@@ -182,20 +213,67 @@ function placeText(
   return { kind: 'text', role, block, place, pad };
 }
 
+function placeCast(slide: Slide): CharacterElement[] {
+  const n = Math.min(slide.cast.length, 3);
+  if (n === 0) return [];
+  const slots = CAST_SLOTS[n - 1];
+  const cy = SAFE.y + SAFE.h - CHARACTER_H / 2;
+  return slide.cast.slice(0, n).map((member, index) => {
+    const rng = rngFor(slide.seed, STREAM.layout, 2000 + index);
+    const cx = SAFE.x + SAFE.w * slots[index];
+    // everyone faces the middle of the group
+    const gaze = n === 1 ? 0 : slots[index] < 0.5 ? 1 : -1;
+    const place = containPlacement(
+      { cx: cx + signed(rng) * 10, cy, w: CHARACTER_W, h: CHARACTER_H, rot: signed(rng) * MAX_CHARACTER_TILT },
+      SAFE,
+    );
+    return { kind: 'character' as const, index, look: lookFor(member.seed), place, gaze };
+  });
+}
+
+function placeBubbles(ctx: Ctx2D, slide: Slide, cast: CharacterElement[]): (Bubble | null)[] {
+  // two speakers: narrow enough that left and right bubbles never overlap
+  const maxText = (cast.length === 1 ? 720 : cast.length === 2 ? 440 : 400) - 2 * BUBBLE_PAD_X;
+  return slide.lines.map((line) => {
+    const who = cast[line.speaker];
+    if (!who) return null;
+    const block = layoutText(ctx, line.text, maxText, BUBBLE_SPEC);
+    if (!block) return null;
+    const w = block.width + 2 * BUBBLE_PAD_X;
+    const h = block.height + 2 * BUBBLE_PAD_Y;
+    const top = who.place.cy - who.place.h / 2;
+    const x = Math.min(Math.max(who.place.cx - w / 2 + who.gaze * 40, SAFE.x), SAFE.x + SAFE.w - w);
+    return { speaker: line.speaker, block, x, bottom: top - 26, w, h, tipX: who.place.cx + who.gaze * 30, tipY: top + 6 };
+  });
+}
+
 /** Where everything comes to rest. Pure in (slide, ctx font metrics). */
 export function computeLayout(ctx: Ctx2D, slide: Slide): Layout {
   ctx.save();
+  const cast = placeCast(slide);
   const title = placeText(ctx, slide, 'title', slide.title, SAFE.y, null);
-  const subtitle = placeText(ctx, slide, 'subtitle', slide.subtitle, null, SAFE.y + SAFE.h);
+  const titleBottom = title ? title.place.cy + halfExtents(title.place.w, title.place.h, title.place.rot).hy + GAP : SAFE.y;
+  // with characters on the floor, the subtitle becomes a caption under the title
+  const subtitle = cast.length
+    ? placeText(ctx, slide, 'subtitle', slide.subtitle, title ? titleBottom - GAP / 2 : SAFE.y, null)
+    : placeText(ctx, slide, 'subtitle', slide.subtitle, null, SAFE.y + SAFE.h);
+  const bubbles = placeBubbles(ctx, slide, cast);
   ctx.restore();
-  const top = title ? title.place.cy + halfExtents(title.place.w, title.place.h, title.place.rot).hy + GAP : SAFE.y;
-  const bottom = subtitle
-    ? subtitle.place.cy - halfExtents(subtitle.place.w, subtitle.place.h, subtitle.place.rot).hy - GAP
-    : SAFE.y + SAFE.h;
+  const extent = (t: TextElement) => halfExtents(t.place.w, t.place.h, t.place.rot).hy;
+  let top = titleBottom;
+  let bottom = subtitle ? subtitle.place.cy - extent(subtitle) - GAP : SAFE.y + SAFE.h;
+  if (cast.length) {
+    if (subtitle) top = subtitle.place.cy + extent(subtitle) + GAP;
+    const tallest = Math.max(0, ...bubbles.map((b) => (b ? b.h : 0)));
+    const castTop = Math.min(...cast.map((c) => c.place.cy - c.place.h / 2));
+    bottom = castTop - (tallest ? Math.min(tallest + 40, 200) : GAP);
+  }
   const imageArea: Rect = { x: SAFE.x, y: top, w: SAFE.w, h: Math.max(120, bottom - top) };
   const elements: Element[] = [];
   if (title) elements.push(title);
+  if (subtitle && cast.length) elements.push(subtitle);
   elements.push(...placeImages(slide, imageArea));
-  if (subtitle) elements.push(subtitle);
-  return { elements, imageArea };
+  if (subtitle && !cast.length) elements.push(subtitle);
+  elements.push(...cast);
+  return { elements, imageArea, bubbles };
 }

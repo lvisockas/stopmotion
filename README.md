@@ -35,6 +35,23 @@ image). Output: `public/demo/*.jpg` + `public/demo/news.json`. Commit them to
 update the live demo. The screenshots show the publishers' own pages and
 remain theirs; each slide names its source.
 
+## Comic layer
+
+Any slide can have up to three paper-cutout characters standing on the
+bottom margin, talking in speech bubbles (inspector, **Comic**). Characters
+are original designs drawn by `src/render/character.ts` in the flat
+construction-paper cutout style: round heads, touching oval eyes, mittens, a
+coat and a beanie, cap or hair. **↻** gives a character a new look (its seed);
+new slides keep the same cast. Lines play in order after everything has
+landed: each bubble pops in, types out at the stop-motion rate while the
+speaker's mouth flaps, and the previous bubble stays up for context. Bubble
+timing compresses to keep the 1.5 s hold, so long dialogue wants a longer
+slide.
+
+The AI-news demo gives every headline a two-character reaction from
+`public/demo/dialogue.json` (keyed by article URL, with a generic fallback
+for headlines nobody wrote lines for yet).
+
 ## How it works
 
 - `src/render/` is framework-free. `drawFrame(ctx, slide, frameIndex, assets)`

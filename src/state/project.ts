@@ -61,6 +61,8 @@ export function reducer(p: Project, a: Action): Project {
               fit: current.fit,
               cutoutBorder: current.cutoutBorder,
               effects: { ...current.effects },
+              // same characters across the carousel, new things to say
+              cast: current.cast.map((c) => ({ ...c })),
             }
           : {},
       );

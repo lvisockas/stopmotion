@@ -1,4 +1,4 @@
-import { FPS, MIN_HOLD_SECONDS, type Slide, type StopMotionRate } from './types';
+import { FPS, MIN_HOLD_SECONDS, type Line, type Slide, type StopMotionRate } from './types';
 
 /** Seconds of empty table before the first element drops in. */
 const LEAD_IN = 0.25;
@@ -34,11 +34,62 @@ export interface DropTiming {
  * before the end, so the finished composition holds.
  */
 export function dropSchedule(count: number, slideDuration: number): DropTiming[] {
+  return dropsWithin(count, Math.max(0.3, slideDuration - LEAD_IN - MIN_HOLD_SECONDS));
+}
+
+/** `count` drops, starting at LEAD_IN, all landed within `available` seconds. */
+function dropsWithin(count: number, available: number): DropTiming[] {
   if (count === 0) return [];
-  const available = Math.max(0.3, slideDuration - LEAD_IN - MIN_HOLD_SECONDS);
   const drop = Math.min(MAX_DROP, count === 1 ? available : available * 0.5);
   const stagger = count === 1 ? 0 : Math.min(MAX_STAGGER, (available - drop) / (count - 1));
   return Array.from({ length: count }, (_, i) => ({ start: LEAD_IN + i * stagger, duration: drop }));
+}
+
+export interface LineTiming {
+  /** Bubble appears. */
+  start: number;
+  /** Last character typed; the speaker stops talking. */
+  typed: number;
+}
+
+export interface SceneSchedule {
+  drops: DropTiming[];
+  lines: LineTiming[];
+}
+
+/** Typing speed for bubbles, characters per second (compressed when the slide is short). */
+const TYPE_RATE = 20;
+const LINE_PAUSE = 0.6;
+
+/**
+ * Drops first, then the dialogue, one bubble after another. With no lines
+ * this is exactly dropSchedule. The last line is fully typed at least
+ * MIN_HOLD_SECONDS before the end.
+ */
+export function sceneSchedule(count: number, lines: Line[], slideDuration: number): SceneSchedule {
+  if (lines.length === 0) return { drops: dropSchedule(count, slideDuration), lines: [] };
+  const available = Math.max(0.3, slideDuration - LEAD_IN - MIN_HOLD_SECONDS);
+  const dropWindow = count === 0 ? 0 : Math.min(available * 0.4, 0.7 + (count - 1) * 0.55);
+  const drops = dropsWithin(count, Math.max(0.3, dropWindow));
+  const linesStart = LEAD_IN + dropWindow + 0.2;
+  const window = Math.max(0.2, slideDuration - MIN_HOLD_SECONDS - linesStart);
+  const typing = lines.map((l) => Math.max(0.5, l.text.trim().length / TYPE_RATE));
+  const needed = typing.reduce((a, b) => a + b, 0) + LINE_PAUSE * (lines.length - 1);
+  const k = Math.min(1, window / needed);
+  let t = linesStart;
+  const timings = typing.map((d) => {
+    const timing = { start: t, typed: t + d * k };
+    t = timing.typed + LINE_PAUSE * k;
+    return timing;
+  });
+  return { drops, lines: timings };
+}
+
+/** Scene time at which everything has landed and been said. */
+export function sceneEndTime(count: number, lines: Line[], slideDuration: number): number {
+  const s = sceneSchedule(count, lines, slideDuration);
+  const drops = s.drops.map((d) => d.start + d.duration);
+  return Math.max(0, ...drops, ...s.lines.map((l) => l.typed));
 }
 
 /** Scene time at which the last element has settled. */
