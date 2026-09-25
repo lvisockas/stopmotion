@@ -1,0 +1,98 @@
+{
+  "cast": [
+    {
+      "seed": 11,
+      "name": "Rita"
+    },
+    {
+      "seed": 29,
+      "name": "Moe"
+    }
+  ],
+  "cover": [
+    [
+      0,
+      "Okay. What did AI do this week?"
+    ],
+    [
+      1,
+      "Grab a snack. It's a lot."
+    ]
+  ],
+  "fallback": [
+    [
+      0,
+      "Did you see this one?"
+    ],
+    [
+      1,
+      "Every week. Every single week."
+    ]
+  ],
+  "headlines": {
+    "https://techcrunch.com/2026/09/25/anthropic-to-pay-akamai-11-6-billion-over-seven-years-in-cloud-deal/": [
+      [
+        0,
+        "$11.6 billion on cloud computing?"
+      ],
+      [
+        1,
+        "For that price I want the actual clouds."
+      ]
+    ],
+    "https://www.wired.com/story/appeals-court-lets-the-pentagon-designate-anthropic-a-supply-chain-risk/": [
+      [
+        0,
+        "A court let the Pentagon call an AI lab a supply-chain risk."
+      ],
+      [
+        1,
+        "And I thought my group chat had drama."
+      ]
+    ],
+    "https://www.theguardian.com/world/video/2026/sep/25/pope-leo-ai-warning-paris": [
+      [
+        0,
+        "The Pope says don't lose your humanity to machines."
+      ],
+      [
+        1,
+        "Noted. Closing my 47 tabs right now."
+      ]
+    ],
+    "https://www.theverge.com/ai-artificial-intelligence/1000644/irregular-rogue-ai-cyberattacks-hacking-openai-meta-anthropic-google": [
+      [
+        0,
+        "Rogue AI agents going after real targets?"
+      ],
+      [
+        1,
+        "My robot vacuum just looked at me funny."
+      ]
+    ],
+    "https://www.technologyreview.com/2026/09/25/1145144/pentagon-ai-lie-detector/": [
+      [
+        0,
+        "The Pentagon wants a $30 million AI lie detector."
+      ],
+      [
+        1,
+        "Cool. Totally cool. I love that."
+      ],
+      [
+        0,
+        "...It just beeped."
+      ]
+    ],
+    "https://arstechnica.com/security/2026/09/microsoft-disrupts-ai-assisted-platform-that-compromised-12000/": [
+      [
+        0,
+        "An AI tool helped hack 12,000 accounts."
+      ],
+      [
+        1,
+        "Changing my password from 'password' right now."
+      ]
+    ]
+  }
+}
