@@ -42,9 +42,9 @@ uses **Toss everything in**.
 
 ## Default project: AI news
 
-The AI-news demo is a carousel built from real headline screenshots: a cover with three of them, then one slide
-per headline credited to its publisher. **AI news demo** in the header
-reloads it; **New project** starts blank.
+The AI-news demo is a carousel built from real headline screenshots: a
+cover with three of them, then one slide per headline credited to its
+publisher. **New project** starts blank.
 
 The screenshots come from `npm run scrape` (`scripts/scrape-news.mjs`): it
 reads the AI feeds of TechCrunch, The Verge, MIT Technology Review, Wired,
