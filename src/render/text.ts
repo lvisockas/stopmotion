@@ -1,6 +1,8 @@
 import type { Ctx2D } from './types';
 
 export const FONT_FAMILY = 'Inter';
+/** Hand lettering for speech bubbles. */
+export const HAND_FAMILY = 'Patrick Hand';
 
 export interface TextSpec {
   weight: number;
@@ -8,10 +10,11 @@ export interface TextSpec {
   minSize: number;
   maxLines: number;
   lineHeight: number;
+  family?: string;
 }
 
 export const TITLE_SPEC: TextSpec = { weight: 800, maxSize: 76, minSize: 40, maxLines: 3, lineHeight: 1.12 };
-export const BUBBLE_SPEC: TextSpec = { weight: 800, maxSize: 36, minSize: 24, maxLines: 4, lineHeight: 1.2 };
+export const BUBBLE_SPEC: TextSpec = { weight: 400, maxSize: 46, minSize: 30, maxLines: 4, lineHeight: 1.08, family: HAND_FAMILY };
 export const SUBTITLE_SPEC: TextSpec = { weight: 500, maxSize: 42, minSize: 26, maxLines: 4, lineHeight: 1.3 };
 
 export interface TextBlock {
@@ -24,7 +27,8 @@ export interface TextBlock {
   height: number;
 }
 
-export const fontString = (weight: number, size: number) => `${weight} ${size}px ${FONT_FAMILY}, sans-serif`;
+export const fontString = (weight: number, size: number, family = FONT_FAMILY) =>
+  `${weight} ${size}px "${family}", ${family === FONT_FAMILY ? 'sans-serif' : 'cursive'}`;
 
 /** Splits a word that alone is wider than maxWidth into pieces that fit. */
 function breakWord(ctx: Ctx2D, word: string, maxWidth: number): string[] {
@@ -81,13 +85,13 @@ export function layoutText(ctx: Ctx2D, text: string, maxWidth: number, spec: Tex
   let size = spec.maxSize;
   let lines: string[] = [];
   for (; size >= spec.minSize; size -= 2) {
-    ctx.font = fontString(spec.weight, size);
+    ctx.font = fontString(spec.weight, size, spec.family);
     lines = wrapLines(ctx, text.trim(), maxWidth);
     if (lines.length <= spec.maxLines) break;
   }
   if (size < spec.minSize) {
     size = spec.minSize;
-    ctx.font = fontString(spec.weight, size);
+    ctx.font = fontString(spec.weight, size, spec.family);
     lines = wrapLines(ctx, text.trim(), maxWidth).slice(0, spec.maxLines);
     let last = lines[lines.length - 1];
     while (last.length > 0 && ctx.measureText(`${last}…`).width > maxWidth) last = last.slice(0, -1);

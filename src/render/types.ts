@@ -54,12 +54,12 @@ export interface CastMember {
   x?: number;
 }
 
-export const SCENES = ['none', 'sky', 'icefjord', 'town', 'mountain-town', 'snowfield', 'aurora', 'room', 'canal'] as const;
+export const SCENES = ['none', 'sky', 'icefjord', 'town', 'mountain-town', 'snowfield', 'aurora', 'room', 'canal', 'shopfront'] as const;
 export type SceneKind = (typeof SCENES)[number];
 
 export const PROP_KINDS = [
   'plane', 'boat', 'iceberg', 'suitcase', 'flag', 'dog', 'dog-hut', 'table', 'cake', 'coffee',
-  'pumpkin', 'cargo-bike', 'goat', 'snow',
+  'pumpkin', 'cargo-bike', 'goat', 'clothes-rack', 'shopping-bag', 'snow',
 ] as const;
 export type PropKind = (typeof PROP_KINDS)[number];
 

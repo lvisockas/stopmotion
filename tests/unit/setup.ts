@@ -10,6 +10,15 @@ for (const w of [500, 800]) {
   }
 }
 
+GlobalFonts.registerFromPath(
+  fileURLToPath(new URL('../../node_modules/@fontsource/patrick-hand/files/patrick-hand-latin-ext-400-normal.woff2', import.meta.url)),
+  'Patrick Hand',
+);
+GlobalFonts.registerFromPath(
+  fileURLToPath(new URL('../../node_modules/@fontsource/patrick-hand/files/patrick-hand-latin-400-normal.woff2', import.meta.url)),
+  'Patrick Hand',
+);
+
 setCanvasFactory((w, h) => {
   const canvas = createCanvas(w, h);
   return { canvas: canvas as unknown as DrawableImage, ctx: canvas.getContext('2d') as unknown as Ctx2D };

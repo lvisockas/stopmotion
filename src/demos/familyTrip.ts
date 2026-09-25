@@ -133,18 +133,20 @@ const STORY: Beat[] = [
     ],
   },
   {
-    title: 'Oct 7 · Copenhagen',
-    scene: 'canal',
+    title: 'Oct 7 · Copenhagen vintage shops',
+    scene: 'shopfront',
     props: [
-      prop('pumpkin', 0.36, 0.91, 0.75, 'front'),
-      prop('pumpkin', 0.64, 0.92, 0.65, 'front'),
-      prop('pumpkin', 0.94, 0.9, 0.8, 'front'),
+      prop('clothes-rack', 0.33, 0.8, 1, 'back'),
+      prop('shopping-bag', 0.3, 0.9, 0.9, 'front'),
+      prop('pumpkin', 0.66, 0.92, 0.6, 'front'),
     ],
     lines: [
-      [BOY, 'Pumpkins!'],
-      [DAD, 'Tivoli Halloween. Carousels cost extra.'],
-      [MOM, 'Worth it.'],
+      [MOM, 'Shifts: you do the vintage shops, we do the playground.'],
+      [DAD, 'Studiestræde. One hour. Maybe two.'],
+      [BOY, 'Then Tivoli pumpkins!'],
     ],
+    positions: [0.18, 0.84, 0.54],
+    duration: 10,
   },
   {
     title: 'Oct 8 · Cargo bike day',

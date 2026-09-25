@@ -16,6 +16,8 @@ export const PROP_SIZE: Record<PropKind, [number, number]> = {
   pumpkin: [150, 130],
   'cargo-bike': [470, 270],
   goat: [190, 170],
+  'clothes-rack': [340, 300],
+  'shopping-bag': [120, 150],
   snow: [WIDTH, HEIGHT],
 };
 
@@ -43,6 +45,40 @@ function rect(ctx: Ctx2D, x: number, y: number, w: number, h: number) {
 type Painter = (ctx: Ctx2D, w: number, h: number, step: number) => void;
 
 const PAINTERS: Record<Exclude<PropKind, 'snow'>, Painter> = {
+  'clothes-rack'(ctx, w, h) {
+    const k = w / 340;
+    ctx.lineWidth = 7 * k;
+    ctx.strokeStyle = '#3a3330';
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-150 * k, h / 2 - 10 * k);
+    ctx.lineTo(-150 * k, -120 * k);
+    ctx.lineTo(150 * k, -120 * k);
+    ctx.lineTo(150 * k, h / 2 - 10 * k);
+    ctx.stroke();
+    for (const [x, c, g] of [[-100, 0, 0], [-35, 1, 1], [30, 2, 2], [95, 3, 0]] as const) {
+      garment(ctx, x * k, -112 * k, k, GARMENTS[c], g);
+    }
+  },
+  'shopping-bag'(ctx, w, h) {
+    ctx.beginPath();
+    ctx.arc(0, -h * 0.3, w * 0.22, Math.PI, 0);
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = '#8a6a44';
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-w / 2, -h * 0.3);
+    ctx.lineTo(w / 2, -h * 0.3);
+    ctx.lineTo(w * 0.46, h / 2);
+    ctx.lineTo(-w * 0.46, h / 2);
+    ctx.closePath();
+    cut(ctx, '#c9a06b', 2.4);
+    ctx.fillStyle = '#2b211c';
+    ctx.font = `400 ${Math.round(w * 0.2)}px "Patrick Hand", cursive`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('VINTAGE', 0, h * 0.1);
+  },
   plane(ctx, w, h) {
     const k = w / 560;
     // tail fin (Air Greenland red)
@@ -359,6 +395,47 @@ const PAINTERS: Record<Exclude<PropKind, 'snow'>, Painter> = {
     ctx.fill();
   },
 };
+
+const GARMENTS = ['#c8352b', '#2f67b3', '#e8b52a', '#3e8c4a', '#8a5a36', '#e05d9c'];
+
+function garment(ctx: Ctx2D, x: number, top: number, k: number, colour: string, kind: number) {
+  // hanger
+  ctx.beginPath();
+  ctx.moveTo(x - 30 * k, top + 20 * k);
+  ctx.lineTo(x, top + 4 * k);
+  ctx.lineTo(x + 30 * k, top + 20 * k);
+  ctx.moveTo(x, top + 4 * k);
+  ctx.quadraticCurveTo(x + 8 * k, top - 8 * k, x, top - 12 * k);
+  ctx.lineWidth = 3 * k;
+  ctx.strokeStyle = '#5a4a3a';
+  ctx.stroke();
+  ctx.beginPath();
+  if (kind === 0) {
+    // coat
+    ctx.moveTo(x - 34 * k, top + 20 * k);
+    ctx.lineTo(x + 34 * k, top + 20 * k);
+    ctx.lineTo(x + 40 * k, top + 150 * k);
+    ctx.lineTo(x - 40 * k, top + 150 * k);
+  } else if (kind === 1) {
+    // sweater with sleeves
+    ctx.moveTo(x - 34 * k, top + 20 * k);
+    ctx.lineTo(x + 34 * k, top + 20 * k);
+    ctx.lineTo(x + 56 * k, top + 80 * k);
+    ctx.lineTo(x + 38 * k, top + 86 * k);
+    ctx.lineTo(x + 32 * k, top + 110 * k);
+    ctx.lineTo(x - 32 * k, top + 110 * k);
+    ctx.lineTo(x - 38 * k, top + 86 * k);
+    ctx.lineTo(x - 56 * k, top + 80 * k);
+  } else {
+    // dress
+    ctx.moveTo(x - 22 * k, top + 20 * k);
+    ctx.lineTo(x + 22 * k, top + 20 * k);
+    ctx.lineTo(x + 48 * k, top + 140 * k);
+    ctx.lineTo(x - 48 * k, top + 140 * k);
+  }
+  ctx.closePath();
+  cut(ctx, colour, 2.4 * k);
+}
 
 /** Draws a prop in a w×h box centred on the origin. */
 export function drawProp(ctx: Ctx2D, kind: Exclude<PropKind, 'snow'>, w: number, h: number, step: number): void {

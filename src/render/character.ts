@@ -18,7 +18,7 @@ const COATS = ['#d9412b', '#2f6fd1', '#3f9b47', '#e3a21a', '#7b4bb7', '#1f8f8a',
 const HATS = ['#2f6fd1', '#d9412b', '#3f9b47', '#f2d43a', '#1c1c1c', '#e05d9c', '#1f8f8a', '#ffffff'];
 const HAIR = ['#2a1a10', '#6b3e1f', '#e0b04a', '#b5391d', '#1c1c1c', '#8a8a8a'];
 const MITTENS = ['#d9412b', '#f2d43a', '#3f9b47', '#2f6fd1', '#56606b'];
-const INK = '#1b1714';
+const INK = '#2b211c';
 
 export type HeadStyle = 'beanie' | 'striped' | 'cap' | 'spiky' | 'bob';
 const STYLES: HeadStyle[] = ['beanie', 'striped', 'cap', 'spiky', 'bob'];
@@ -58,15 +58,36 @@ export function lookFor(seed: number, overrides: LookOverrides = {}): Look {
 export interface Pose {
   /** Mouth open (talking, on alternate shots). */
   mouthOpen: boolean;
+  /** 0 on the table, 1 high above it (dropping in). */
+  lift?: number;
   /** -1 looks left, 1 looks right. */
   gaze: number;
 }
 
 function outline(ctx: Ctx2D, s: number) {
-  ctx.lineWidth = 3.2 * s;
+  ctx.lineWidth = 2.4 * s;
   ctx.strokeStyle = INK;
   ctx.lineJoin = 'round';
   ctx.stroke();
+}
+
+/** How high the cutout is off the table; each piece's shadow scales with it. */
+let lift = 0;
+
+/**
+ * One paper piece: fill with a small shadow onto whatever is beneath it
+ * (the set, or the piece under it), then the cut edge.
+ */
+function piece(ctx: Ctx2D, fill: string, s: number) {
+  ctx.save();
+  ctx.shadowColor = `rgba(25,16,8,${0.3 - 0.1 * lift})`;
+  ctx.shadowBlur = (4 + 30 * lift) * s;
+  ctx.shadowOffsetX = (1.5 + 18 * lift) * s;
+  ctx.shadowOffsetY = (3 + 34 * lift) * s;
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.restore();
+  outline(ctx, s);
 }
 
 function blob(ctx: Ctx2D, cx: number, cy: number, r: number, wobble: number[]) {
@@ -86,15 +107,15 @@ function blob(ctx: Ctx2D, cx: number, cy: number, r: number, wobble: number[]) {
 /** Draws a character in a w×h box centred on the origin, feet on the bottom edge. */
 export function drawCharacter(ctx: Ctx2D, look: Look, w: number, h: number, pose: Pose): void {
   const s = Math.min(w / BASE_W, h / BASE_H);
+  lift = pose.lift ?? 0;
   const floor = h / 2;
   const g = pose.gaze;
 
   // feet
-  ctx.fillStyle = INK;
   for (const side of [-1, 1]) {
     ctx.beginPath();
     ctx.ellipse(side * 34 * s, floor - 11 * s, 30 * s, 11 * s, 0, 0, Math.PI * 2);
-    ctx.fill();
+    piece(ctx, '#2b2320', s);
   }
 
   // coat
@@ -106,9 +127,7 @@ export function drawCharacter(ctx: Ctx2D, look: Look, w: number, h: number, pose
   ctx.lineTo(60 * s, bodyTop);
   ctx.lineTo(-60 * s, bodyTop);
   ctx.closePath();
-  ctx.fillStyle = look.coat;
-  ctx.fill();
-  outline(ctx, s);
+  piece(ctx, look.coat, s);
   ctx.beginPath();
   ctx.moveTo(0, bodyTop + 8 * s);
   ctx.lineTo(0, bodyBottom);
@@ -128,9 +147,7 @@ export function drawCharacter(ctx: Ctx2D, look: Look, w: number, h: number, pose
   for (const side of [-1, 1]) {
     ctx.beginPath();
     ctx.arc(side * 82 * s, bodyBottom - 42 * s, 19 * s, 0, Math.PI * 2);
-    ctx.fillStyle = look.mitten;
-    ctx.fill();
-    outline(ctx, s);
+    piece(ctx, look.mitten, s);
   }
 
   // head
@@ -140,9 +157,7 @@ export function drawCharacter(ctx: Ctx2D, look: Look, w: number, h: number, pose
     // hair behind the head (long hair draws its own)
     ctx.beginPath();
     ctx.ellipse(0, hy + 8 * s, r * 1.08, r * 1.02, 0, 0, Math.PI * 2);
-    ctx.fillStyle = look.hair;
-    ctx.fill();
-    outline(ctx, s);
+    piece(ctx, look.hair, s);
   }
   if (look.longHair) {
     // falls behind the head to the shoulders
@@ -152,14 +167,10 @@ export function drawCharacter(ctx: Ctx2D, look: Look, w: number, h: number, pose
     ctx.lineTo(r * 0.72, bodyTop + 30 * s);
     ctx.quadraticCurveTo(r * 1.18, hy + r * 0.9, r * 0.98, hy - r * 0.2);
     ctx.closePath();
-    ctx.fillStyle = look.hair;
-    ctx.fill();
-    outline(ctx, s);
+    piece(ctx, look.hair, s);
   }
   blob(ctx, 0, hy, r, look.wobble);
-  ctx.fillStyle = look.skin;
-  ctx.fill();
-  outline(ctx, s);
+  piece(ctx, look.skin, s);
 
   if (look.beard) {
     // chin-strap beard, mouth sits on top of it
@@ -168,9 +179,7 @@ export function drawCharacter(ctx: Ctx2D, look: Look, w: number, h: number, pose
     ctx.quadraticCurveTo(-r * 0.5, hy + r * 0.25, 0, hy + r * 0.3);
     ctx.quadraticCurveTo(r * 0.5, hy + r * 0.25, Math.cos(Math.PI * 0.08) * r * 0.99, hy + Math.sin(Math.PI * 0.08) * r * 0.99);
     ctx.closePath();
-    ctx.fillStyle = look.hair;
-    ctx.fill();
-    outline(ctx, s);
+    piece(ctx, look.hair, s);
   }
 
   // headwear
@@ -178,9 +187,7 @@ export function drawCharacter(ctx: Ctx2D, look: Look, w: number, h: number, pose
     ctx.beginPath();
     ctx.arc(0, hy, r * 1.01, Math.PI * 1.08, Math.PI * 1.92);
     ctx.closePath();
-    ctx.fillStyle = fill;
-    ctx.fill();
-    outline(ctx, s);
+    piece(ctx, fill, s);
   };
   switch (look.style) {
     case 'beanie':
@@ -222,9 +229,7 @@ export function drawCharacter(ctx: Ctx2D, look: Look, w: number, h: number, pose
       // pompom
       ctx.beginPath();
       ctx.arc(0, hy - r - 10 * s, 17 * s, 0, Math.PI * 2);
-      ctx.fillStyle = look.mitten;
-      ctx.fill();
-      outline(ctx, s);
+      piece(ctx, look.mitten, s);
       break;
     }
     case 'cap': {
@@ -247,9 +252,7 @@ export function drawCharacter(ctx: Ctx2D, look: Look, w: number, h: number, pose
       domeTop(look.hat);
       ctx.beginPath();
       ctx.ellipse(g * r * 0.62, hy - r * 0.34, r * 0.62, 12 * s, 0, 0, Math.PI * 2);
-      ctx.fillStyle = look.hat;
-      ctx.fill();
-      outline(ctx, s);
+      piece(ctx, look.hat, s);
       break;
     }
     case 'spiky': {
@@ -264,9 +267,7 @@ export function drawCharacter(ctx: Ctx2D, look: Look, w: number, h: number, pose
       ctx.lineTo(r * 0.95, hy - r * 0.3);
       ctx.quadraticCurveTo(0, hy - r * 0.55, -r * 0.95, hy - r * 0.3);
       ctx.closePath();
-      ctx.fillStyle = look.hair;
-      ctx.fill();
-      outline(ctx, s);
+      piece(ctx, look.hair, s);
       break;
     }
     case 'bob': {
@@ -276,9 +277,7 @@ export function drawCharacter(ctx: Ctx2D, look: Look, w: number, h: number, pose
       ctx.quadraticCurveTo(r * 0.62, hy - r * 0.62, r * 0.08, hy - r * 0.5);
       ctx.quadraticCurveTo(-r * 0.62, hy - r * 0.42, -r * 0.99, hy - r * 0.08);
       ctx.closePath();
-      ctx.fillStyle = look.hair;
-      ctx.fill();
-      outline(ctx, s);
+      piece(ctx, look.hair, s);
       break;
     }
   }
@@ -287,11 +286,7 @@ export function drawCharacter(ctx: Ctx2D, look: Look, w: number, h: number, pose
   for (const side of [-1, 1]) {
     ctx.beginPath();
     ctx.ellipse(side * 25 * s, hy - 8 * s, 26 * s, 31 * s, side * 0.18, 0, Math.PI * 2);
-    ctx.fillStyle = '#ffffff';
-    ctx.fill();
-    ctx.lineWidth = 2.6 * s;
-    ctx.strokeStyle = INK;
-    ctx.stroke();
+    piece(ctx, '#ffffff', s);
     ctx.beginPath();
     ctx.arc(side * 11 * s + g * 9 * s, hy - 6 * s, 5.5 * s, 0, Math.PI * 2);
     ctx.fillStyle = INK;

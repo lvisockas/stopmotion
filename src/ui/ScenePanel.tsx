@@ -12,6 +12,7 @@ const SCENE_NAMES: Record<SceneKind, string> = {
   aurora: 'Aurora night',
   room: 'Room with a view',
   canal: 'Canal houses',
+  shopfront: 'Vintage shop',
 };
 
 interface Props {

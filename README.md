@@ -30,9 +30,14 @@ in the header switches to it or to the AI-news carousel below.
 
 The inspector's **Scene** section gives a slide a cut-paper backdrop (sky,
 icefjord, coastal town, town under a mountain, snowfield, aurora night, room
-with a view, canal houses) and story props (plane, boat, iceberg, suitcase,
+with a view, canal houses, vintage shop). With **Paper texture** on, the
+backdrop is a sheet taped to a kraft-paper table with offcuts, confetti and a
+paper curl around the edges; hills and shores have torn edges, labels are
+torn strips held on with tape, speech bubbles are hand-cut card with
+hand-lettered text (Patrick Hand), and each piece of a character casts its
+own small shadow and story props (plane, boat, iceberg, suitcase,
 Greenland flag, sled dog and hut, table, cake, coffee, pumpkin, cargo bike,
-goat, falling snow). Props sit **behind** or **in front of** the characters;
+goat, clothes rack, shopping bag, falling snow). Props sit **behind** or **in front of** the characters;
 **part of the set** props (furniture) are in place from the first frame.
 
 **Opening: Start settled** is for slides that continue a story: the backdrop,

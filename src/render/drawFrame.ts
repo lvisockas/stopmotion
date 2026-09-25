@@ -2,9 +2,9 @@ import { bubbleLength, drawBubble } from './bubbles';
 import { drawCharacter } from './character';
 import { computeLayout, zOf, type Element, type Layout } from './layout';
 import { drawProp, drawSnow } from './props';
-import { sceneTexture } from './scenery';
+import { sceneTexture, setTexture } from './scenery';
 import { dropPose, REST_POSE, type DropFlavor, type DropPose } from './motion';
-import { rngFor, signed, STREAM } from './prng';
+import { hashInts, rngFor, signed, STREAM } from './prng';
 import { GRAIN_TILE, GRAIN_VARIANTS, grainTile, paperTexture } from './textures';
 import { sampleStep, sceneSchedule } from './timeline';
 import { HEIGHT, WIDTH, type AssetLookup, type Ctx2D, type Slide } from './types';
@@ -67,11 +67,8 @@ function drawElement(ctx: Ctx2D, slide: Slide, el: Element, pose: DropPose, asse
     return;
   }
   if (el.kind === 'character') {
-    // cutouts cast a shadow like everything else on the table
-    applyShadow(ctx, pose.lift);
-    ctx.shadowBlur *= 0.5;
-    drawCharacter(ctx, el.look, w, h, { mouthOpen: talker === el.index && step % 2 === 0, gaze: el.gaze });
-    clearShadow(ctx);
+    // every piece of the cutout casts its own shadow (see drawCharacter)
+    drawCharacter(ctx, el.look, w, h, { mouthOpen: talker === el.index && step % 2 === 0, gaze: el.gaze, lift: pose.lift });
     return;
   }
   if (el.kind === 'image') {
@@ -95,13 +92,38 @@ function drawElement(ctx: Ctx2D, slide: Slide, el: Element, pose: DropPose, asse
   }
   const { block, pad } = el;
   if (pad > 0) {
+    // a strip torn off a sheet: straight cut sides, ragged torn top and bottom
+    const rng = rngFor(slide.seed, STREAM.layout, el.role === 'title' ? 4001 : 4002);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    for (let tx = x + 10; tx < x + w; tx += 10) ctx.lineTo(tx, y + (rng() - 0.5) * 5);
+    ctx.lineTo(x + w, y);
+    ctx.lineTo(x + w, y + h);
+    for (let tx = x + w - 10; tx > x; tx -= 10) ctx.lineTo(tx, y + h + (rng() - 0.5) * 5);
+    ctx.lineTo(x, y + h);
+    ctx.closePath();
     applyShadow(ctx, pose.lift);
     ctx.fillStyle = LABEL_PAPER;
-    ctx.fillRect(x, y, w, h);
+    ctx.fill();
     clearShadow(ctx);
-    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+    ctx.save();
+    ctx.clip();
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.globalAlpha = 0.6;
+    ctx.drawImage(paperTexture('#ffffff', 4), x - 20, y - 20);
+    ctx.restore();
+    // tape holding it on, only once it has landed
+    if (pose.lift < 0.02) {
+      const tx = x + w * (0.12 + rng() * 0.76);
+      ctx.save();
+      ctx.translate(tx, y + 2);
+      ctx.rotate((rng() - 0.5) * 0.5);
+      ctx.fillStyle = 'rgba(236,224,192,0.78)';
+      ctx.shadowColor = 'rgba(30,20,10,0.15)';
+      ctx.shadowBlur = 2;
+      ctx.fillRect(-55, -16, 110, 32);
+      ctx.restore();
+    }
   } else {
     ctx.shadowColor = `rgba(0,0,0,${0.18 + 0.1 * pose.lift})`;
     ctx.shadowBlur = 4 + 24 * pose.lift;
@@ -155,6 +177,7 @@ function drawDialogue(
       dx: signed(jr) * JITTER_PX,
       dy: signed(jr) * JITTER_PX,
       rot: signed(jr) * JITTER_ROT,
+      seed: hashInts(slide.seed, i),
     });
   });
 }
@@ -204,15 +227,8 @@ export function drawFrame(ctx: Ctx2D, slide: Slide, frameIndex: number, assets: 
   clearShadow(ctx);
 
   if (slide.scene !== 'none') {
-    // one shared world: the scene is keyed by kind, not by slide seed
-    ctx.drawImage(sceneTexture(slide.scene, 1), 0, 0);
-    if (slide.effects.paper) {
-      ctx.save();
-      ctx.globalCompositeOperation = 'multiply';
-      ctx.globalAlpha = 0.5;
-      ctx.drawImage(paperTexture('#f4efe6', 1), 0, 0);
-      ctx.restore();
-    }
+    // one shared world: the set is keyed by scene kind, not by slide seed
+    ctx.drawImage(slide.effects.paper ? setTexture(slide.scene) : sceneTexture(slide.scene, 1), 0, 0);
   } else if (slide.effects.paper) {
     ctx.drawImage(paperTexture(slide.background, slide.seed), 0, 0);
   } else {

@@ -99,8 +99,8 @@ const GAP = 36;
 const MAX_IMAGE_TILT = (5 * Math.PI) / 180;
 const MAX_TEXT_TILT = (1.6 * Math.PI) / 180;
 const MAX_CHARACTER_TILT = (2 * Math.PI) / 180;
-const BUBBLE_PAD_X = 26;
-const BUBBLE_PAD_Y = 18;
+const BUBBLE_PAD_X = 44;
+const BUBBLE_PAD_Y = 30;
 /** Horizontal slots for 1, 2 or 3 characters, as fractions of the safe width. */
 const CAST_SLOTS = [[0.5], [0.2, 0.8], [0.16, 0.5, 0.84]];
 
@@ -269,7 +269,7 @@ function placeBubbles(ctx: Ctx2D, slide: Slide, cast: CharacterElement[]): (Bubb
     const h = block.height + 2 * BUBBLE_PAD_Y;
     const top = who.place.cy - who.place.h / 2;
     const x = Math.min(Math.max(who.place.cx - w / 2 + who.gaze * 40, SAFE.x), SAFE.x + SAFE.w - w);
-    return { speaker: line.speaker, block, x, bottom: top - 26, w, h, tipX: who.place.cx + who.gaze * 30, tipY: top + 6 };
+    return { speaker: line.speaker, block, x, bottom: top - 30, w, h, tipX: who.place.cx + who.gaze * 30, tipY: top + who.place.h * 0.1 };
   });
 }
 
