@@ -94,6 +94,7 @@ export function Inspector({ slide, dispatch, onFiles, disabled }: Props) {
               <select value={slide.fit} onChange={(e) => update({ fit: e.target.value as Slide['fit'] })}>
                 <option value="fit">Fit (never crop)</option>
                 <option value="fill">Fill (crop to frame)</option>
+                <option value="cutout">Cut-out (transparent PNG)</option>
               </select>
             </Field>
             <label className="check">

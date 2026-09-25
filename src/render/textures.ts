@@ -148,3 +148,30 @@ export function grainTile(variant: number): DrawableImage {
     return canvas;
   });
 }
+
+/**
+ * A transparent cutout as a paper sticker: the picture on a white paper
+ * border that follows its silhouette, like something cut out with scissors
+ * leaving a margin. The border is the alpha mask dilated by drawing it at
+ * offsets around a circle, with a slightly uneven radius (hand-cut).
+ */
+export function stickerTexture(id: string, img: DrawableImage, w: number, h: number, border: number): DrawableImage {
+  const W = Math.ceil(w + 2 * border + 4);
+  const H = Math.ceil(h + 2 * border + 4);
+  return cachedTexture(`sticker|${id}|${Math.round(w)}|${Math.round(h)}|${border}`, W, H, (ctx) => {
+    const { canvas: mask, ctx: m } = factory(W, H);
+    m.imageSmoothingQuality = 'high';
+    m.drawImage(img, border + 2, border + 2, w, h);
+    m.globalCompositeOperation = 'source-in';
+    m.fillStyle = '#fbf9f4';
+    m.fillRect(0, 0, W, H);
+    const steps = 24;
+    for (let i = 0; i < steps; i++) {
+      const a = (i / steps) * Math.PI * 2;
+      const r = border * (0.82 + 0.18 * Math.abs(Math.sin(a * 3 + 1.3)));
+      ctx.drawImage(mask, Math.cos(a) * r, Math.sin(a) * r);
+    }
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, border + 2, border + 2, w, h);
+  });
+}

@@ -12,12 +12,12 @@ const KEYFRAME_INTERVAL = FPS * 2;
  */
 const HIGH_PROFILE_CODECS = ['avc1.640028', 'avc1.64002a', 'avc1.640032'];
 
-export function encoderConfig(codec: string): VideoEncoderConfig {
+export function encoderConfig(codec: string, bitrate = TARGET_BITRATE): VideoEncoderConfig {
   return {
     codec,
     width: WIDTH,
     height: HEIGHT,
-    bitrate: TARGET_BITRATE,
+    bitrate,
     bitrateMode: 'variable',
     framerate: FPS,
     latencyMode: 'quality',
@@ -58,6 +58,8 @@ export function checkEncoderSupport(): Promise<SupportResult> {
 }
 
 export interface EncodeOptions {
+  /** Defaults to TARGET_BITRATE (Instagram quality); lower it for size-capped destinations. */
+  bitrate?: number;
   onProgress?: (fraction: number) => void;
   signal?: AbortSignal;
 }
@@ -99,7 +101,7 @@ export async function encodeSlide(slide: Slide, assets: AssetLookup, opts: Encod
     },
     error: (e) => (failure ??= e),
   });
-  encoder.configure(encoderConfig(support.codec));
+  encoder.configure(encoderConfig(support.codec, opts.bitrate));
 
   const ctx = makeContext();
   const yuv = new Uint8Array(i420Size(WIDTH, HEIGHT));

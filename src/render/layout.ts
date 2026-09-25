@@ -165,10 +165,34 @@ function chooseGrid(images: SlideImage[], area: Rect): Grid {
   return best;
 }
 
+/**
+ * Cutouts (transparent PNGs of people, icebergs…) stand on the floor like
+ * the paper characters: explicit placement when given, otherwise a row
+ * across the frame, feet on the bottom margin.
+ */
+function placeCutouts(slide: Slide): ImageElement[] {
+  const n = slide.images.length;
+  return slide.images.map((image, i) => {
+    const rng = rngFor(slide.seed, STREAM.layout, i);
+    const auto = { x: (i + 0.5) / n, y: (SAFE.y + SAFE.h) / HEIGHT, h: 0.55 };
+    const p = image.place ?? auto;
+    const h = p.h * HEIGHT;
+    const w = (h * image.width) / image.height;
+    return {
+      kind: 'image' as const,
+      image,
+      place: { cx: p.x * WIDTH, cy: p.y * HEIGHT - h / 2, w, h, rot: signed(rng) * 0.035 },
+      border: 0,
+      src: { x: 0, y: 0, w: image.width, h: image.height },
+    };
+  });
+}
+
 function placeImages(slide: Slide, area: Rect): ImageElement[] {
   const images = slide.images;
   const n = images.length;
   if (n === 0) return [];
+  if (slide.fit === 'cutout') return placeCutouts(slide);
   const { cols, rows } = chooseGrid(images, area);
   const cw = area.w / cols;
   const ch = area.h / rows;
@@ -296,7 +320,9 @@ export function computeLayout(ctx: Ctx2D, slide: Slide): Layout {
   const title = placeText(ctx, slide, 'title', slide.title, SAFE.y, null);
   const titleBottom = title ? title.place.cy + halfExtents(title.place.w, title.place.h, title.place.rot).hy + GAP : SAFE.y;
   // with characters on the floor, the subtitle becomes a caption under the title
-  const subtitle = cast.length
+  // with characters or cutouts standing on the floor, the subtitle is a caption under the title
+  const floorTaken = cast.length > 0 || slide.fit === 'cutout';
+  const subtitle = floorTaken
     ? placeText(ctx, slide, 'subtitle', slide.subtitle, title ? titleBottom - GAP / 2 : SAFE.y, null)
     : placeText(ctx, slide, 'subtitle', slide.subtitle, null, SAFE.y + SAFE.h);
   const bubbles = placeBubbles(ctx, slide, cast);
@@ -313,9 +339,9 @@ export function computeLayout(ctx: Ctx2D, slide: Slide): Layout {
   const imageArea: Rect = { x: SAFE.x, y: top, w: SAFE.w, h: Math.max(120, bottom - top) };
   const elements: Element[] = [];
   if (title) elements.push(title);
-  if (subtitle && cast.length) elements.push(subtitle);
+  if (subtitle && floorTaken) elements.push(subtitle);
   elements.push(...placeImages(slide, imageArea));
-  if (subtitle && !cast.length) elements.push(subtitle);
+  if (subtitle && !floorTaken) elements.push(subtitle);
   elements.push(...cast);
   // story props drop last: they are the beats of the scene
   elements.push(...placeProps(slide));

@@ -5,7 +5,7 @@ import { drawProp, drawSnow } from './props';
 import { sceneTexture, setTexture } from './scenery';
 import { dropPose, REST_POSE, type DropFlavor, type DropPose } from './motion';
 import { hashInts, rngFor, signed, STREAM } from './prng';
-import { GRAIN_TILE, GRAIN_VARIANTS, grainTile, paperTexture } from './textures';
+import { GRAIN_TILE, GRAIN_VARIANTS, grainTile, paperTexture, stickerTexture } from './textures';
 import { sampleStep, sceneSchedule } from './timeline';
 import { HEIGHT, WIDTH, type AssetLookup, type Ctx2D, type Slide } from './types';
 
@@ -69,6 +69,16 @@ function drawElement(ctx: Ctx2D, slide: Slide, el: Element, pose: DropPose, asse
   if (el.kind === 'character') {
     // every piece of the cutout casts its own shadow (see drawCharacter)
     drawCharacter(ctx, el.look, w, h, { mouthOpen: talker === el.index && step % 2 === 0, gaze: el.gaze, lift: pose.lift });
+    return;
+  }
+  if (el.kind === 'image' && slide.fit === 'cutout') {
+    const img = assets(el.image.id);
+    if (!img) return;
+    const b = Math.max(8, Math.round(Math.min(w, h) * 0.035));
+    const sticker = stickerTexture(el.image.id, img, w, h, b);
+    applyShadow(ctx, pose.lift);
+    ctx.drawImage(sticker, x - b - 2, y - b - 2);
+    clearShadow(ctx);
     return;
   }
   if (el.kind === 'image') {

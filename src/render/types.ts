@@ -12,7 +12,7 @@ export const MAX_DURATION = 15;
 export const STOP_MOTION_RATES = [6, 8, 12, 15, 30] as const;
 export type StopMotionRate = (typeof STOP_MOTION_RATES)[number];
 
-export type FitMode = 'fit' | 'fill';
+export type FitMode = 'fit' | 'fill' | 'cutout';
 export type TextStyle = 'plain' | 'label';
 
 export interface SlideImage {
@@ -21,6 +21,11 @@ export interface SlideImage {
   name: string;
   width: number;
   height: number;
+  /**
+   * Cutout mode only: where it stands. x = centre, y = bottom edge (feet),
+   * h = height, all as fractions of the frame. May bleed off the frame.
+   */
+  place?: { x: number; y: number; h: number };
 }
 
 export interface Effects {

@@ -77,6 +77,19 @@ The AI-news demo gives every headline a two-character reaction from
 `public/demo/dialogue.json` (keyed by article URL, with a generic fallback
 for headlines nobody wrote lines for yet).
 
+## Photo cutouts
+
+**Scaling → Cut-out (transparent PNG)** treats a slide's images as cutouts:
+people or objects with the background removed (on an iPhone: long-press the
+subject in Photos → Copy / Share). Each one becomes a paper sticker with a
+hand-cut white border following its silhouette and stands on the floor of
+the scene; `place: { x, y, h }` on an image pins where it stands.
+
+`node scripts/render-job.mjs job.json out/ [--frames 0,120]` renders a
+project described in a JSON file (slides + local image paths, optional
+`bitrate`) through the same renderer and encoder, without the files ever
+entering the app or the repo. `--frames` writes PNG stills for review.
+
 ## How it works
 
 - `src/render/` is framework-free. `drawFrame(ctx, slide, frameIndex, assets)`
