@@ -31,11 +31,53 @@ export interface Effects {
   flicker: boolean;
 }
 
-/** A paper-cutout character. Its whole look derives from `seed`. */
+/** Explicit look choices; anything left out comes from the seed. */
+export interface LookOverrides {
+  skin?: string;
+  coat?: string;
+  hat?: string;
+  hair?: string;
+  mitten?: string;
+  style?: 'beanie' | 'striped' | 'cap' | 'spiky' | 'bob';
+  beard?: boolean;
+  longHair?: boolean;
+}
+
+/** A paper-cutout character. Its look derives from `seed`, then `look` overrides. */
 export interface CastMember {
   seed: number;
   name: string;
+  look?: LookOverrides;
+  /** 1 = adult size; a toddler is about 0.68. */
+  scale?: number;
+  /** Horizontal position as a fraction of the frame width (default: evenly spaced). */
+  x?: number;
 }
+
+export const SCENES = ['none', 'sky', 'icefjord', 'town', 'mountain-town', 'snowfield', 'aurora', 'room', 'canal'] as const;
+export type SceneKind = (typeof SCENES)[number];
+
+export const PROP_KINDS = [
+  'plane', 'boat', 'iceberg', 'suitcase', 'flag', 'dog', 'dog-hut', 'table', 'cake', 'coffee',
+  'pumpkin', 'cargo-bike', 'goat', 'snow',
+] as const;
+export type PropKind = (typeof PROP_KINDS)[number];
+
+/** A cutout story prop. Positions are fractions of the frame; `back` props sit behind the characters. */
+export interface Prop {
+  kind: PropKind;
+  x: number;
+  y: number;
+  scale: number;
+  layer: 'back' | 'front';
+  /** Mirror horizontally. */
+  flip?: boolean;
+  /** Part of the set (furniture): already in place, never drops in. */
+  still?: boolean;
+}
+
+/** 'drop': everything tosses in. 'settled': scene, text and characters are already there; only props drop. */
+export type Intro = 'drop' | 'settled';
 
 /** One speech bubble, said by cast[speaker]. */
 export interface Line {
@@ -65,6 +107,10 @@ export interface Slide {
   /** Comic layer: characters standing at the bottom, talking in bubbles. */
   cast: CastMember[];
   lines: Line[];
+  /** Cut-paper backdrop drawn instead of the plain background. */
+  scene: SceneKind;
+  props: Prop[];
+  intro: Intro;
 }
 
 /** Anything drawImage accepts and that has intrinsic dimensions. */

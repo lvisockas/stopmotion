@@ -1,12 +1,12 @@
 import { useEffect, useRef, type Dispatch } from 'react';
-import { lookFor, MAX_CAST, randomSeed, type Line, type Slide } from '../render';
+import { lookFor, MAX_CAST, randomSeed, type Line, type LookOverrides, type Slide } from '../render';
 import { drawCharacter } from '../render/character';
 import type { Action } from '../state/project';
 
 const NAMES = ['Rita', 'Moe', 'Dot', 'Gus', 'Ivy', 'Lou', 'Pip', 'Nell'];
 
 /** A small preview of a cast member, drawn by the renderer's own drawCharacter. */
-function Face({ seed }: { seed: number }) {
+function Face({ seed, look }: { seed: number; look?: LookOverrides }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const ctx = ref.current?.getContext('2d');
@@ -14,9 +14,9 @@ function Face({ seed }: { seed: number }) {
     ctx.clearRect(0, 0, 60, 80);
     ctx.save();
     ctx.translate(30, 40);
-    drawCharacter(ctx, lookFor(seed), 56, 76, { mouthOpen: false, gaze: 0 });
+    drawCharacter(ctx, lookFor(seed, look), 56, 76, { mouthOpen: false, gaze: 0 });
     ctx.restore();
-  }, [seed]);
+  }, [seed, look]);
   return <canvas ref={ref} width={60} height={80} className="face" />;
 }
 
@@ -37,13 +37,17 @@ export function ComicPanel({ slide, dispatch }: Props) {
       <div className="cast">
         {slide.cast.map((c, i) => (
           <div key={i} className="member">
-            <Face seed={c.seed} />
+            <Face seed={c.seed} look={c.look} />
             <input value={c.name} aria-label={`Character ${i + 1} name`}
               onChange={(e) => update({ cast: slide.cast.map((m, j) => (j === i ? { ...m, name: e.target.value } : m)) })} />
             <div className="member-actions">
               <button type="button" title="New look"
-                onClick={() => update({ cast: slide.cast.map((m, j) => (j === i ? { ...m, seed: randomSeed() } : m)) })}>
+                onClick={() => update({ cast: slide.cast.map((m, j) => (j === i ? { ...m, seed: randomSeed(), look: undefined } : m)) })}>
                 ↻
+              </button>
+              <button type="button" title={(c.scale ?? 1) < 1 ? 'Make adult size' : 'Make child size'}
+                onClick={() => update({ cast: slide.cast.map((m, j) => (j === i ? { ...m, scale: (m.scale ?? 1) < 1 ? 1 : 0.66 } : m)) })}>
+                {(c.scale ?? 1) < 1 ? 'S' : 'L'}
               </button>
               <button type="button" title="Remove character"
                 onClick={() =>

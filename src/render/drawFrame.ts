@@ -1,7 +1,9 @@
 import { bubbleLength, drawBubble } from './bubbles';
 import { drawCharacter } from './character';
-import { computeLayout, type Element, type Layout } from './layout';
-import { dropPose, type DropFlavor, type DropPose } from './motion';
+import { computeLayout, zOf, type Element, type Layout } from './layout';
+import { drawProp, drawSnow } from './props';
+import { sceneTexture } from './scenery';
+import { dropPose, REST_POSE, type DropFlavor, type DropPose } from './motion';
 import { rngFor, signed, STREAM } from './prng';
 import { GRAIN_TILE, GRAIN_VARIANTS, grainTile, paperTexture } from './textures';
 import { sampleStep, sceneSchedule } from './timeline';
@@ -56,6 +58,14 @@ function drawElement(ctx: Ctx2D, slide: Slide, el: Element, pose: DropPose, asse
   const { w, h } = el.place;
   const x = -w / 2;
   const y = -h / 2;
+  if (el.kind === 'prop') {
+    applyShadow(ctx, pose.lift);
+    ctx.shadowBlur *= 0.6;
+    if (el.prop.flip) ctx.scale(-1, 1);
+    if (el.prop.kind !== 'snow') drawProp(ctx, el.prop.kind, w, h, step);
+    clearShadow(ctx);
+    return;
+  }
   if (el.kind === 'character') {
     // cutouts cast a shadow like everything else on the table
     applyShadow(ctx, pose.lift);
@@ -193,7 +203,17 @@ export function drawFrame(ctx: Ctx2D, slide: Slide, frameIndex: number, assets: 
   ctx.imageSmoothingQuality = 'high';
   clearShadow(ctx);
 
-  if (slide.effects.paper) {
+  if (slide.scene !== 'none') {
+    // one shared world: the scene is keyed by kind, not by slide seed
+    ctx.drawImage(sceneTexture(slide.scene, 1), 0, 0);
+    if (slide.effects.paper) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.globalAlpha = 0.5;
+      ctx.drawImage(paperTexture('#f4efe6', 1), 0, 0);
+      ctx.restore();
+    }
+  } else if (slide.effects.paper) {
     ctx.drawImage(paperTexture(slide.background, slide.seed), 0, 0);
   } else {
     ctx.fillStyle = slide.background;
@@ -202,14 +222,20 @@ export function drawFrame(ctx: Ctx2D, slide: Slide, frameIndex: number, assets: 
 
   const { step, time } = sampleStep(frameIndex, slide.stopMotionFps);
   const layout = getLayout(ctx, slide);
-  const schedule = sceneSchedule(layout.elements.length, slide.lines, slide.duration);
+  // settled slides open on the finished scene; only props drop in as story beats
+  const settled = slide.intro === 'settled';
+  const dropping = layout.elements.filter((el) =>
+    el.kind === 'prop' ? !el.prop.still : !settled,
+  );
+  const schedule = sceneSchedule(dropping.length, slide.lines, slide.duration);
   const typing = schedule.lines.findIndex((l) => time >= l.start && time < l.typed);
   const talker = typing >= 0 ? slide.lines[typing].speaker : null;
 
-  layout.elements.forEach((el, i) => {
-    const t = schedule.drops[i];
-    const pose = dropPose((time - t.start) / t.duration, flavorFor(slide, i));
-    if (!pose.visible) return;
+  const order = layout.elements.map((el, i) => ({ el, i })).sort((a, b) => zOf(a.el) - zOf(b.el) || a.i - b.i);
+  for (const { el, i } of order) {
+    const d = dropping.indexOf(el);
+    const pose = d < 0 ? REST_POSE : dropPose((time - schedule.drops[d].start) / schedule.drops[d].duration, flavorFor(slide, i));
+    if (!pose.visible) continue;
     // hand-placed between shots: every element shifts a hair on every step
     const jr = rngFor(slide.seed, STREAM.jitter, step, i);
     const jx = signed(jr) * JITTER_PX;
@@ -221,7 +247,10 @@ export function drawFrame(ctx: Ctx2D, slide: Slide, frameIndex: number, assets: 
     ctx.scale(pose.scale, pose.scale);
     drawElement(ctx, slide, el, pose, assets, talker, step);
     ctx.restore();
-  });
+  }
+
+  const snow = slide.props.find((p) => p.kind === 'snow');
+  if (snow) drawSnow(ctx, slide.seed, time, snow.scale || 1);
 
   drawDialogue(ctx, slide, layout, schedule.lines, time, step);
 

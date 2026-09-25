@@ -35,11 +35,20 @@ const cache = new Map<string, DrawableImage>();
 function cached(key: string, make: () => DrawableImage): DrawableImage {
   let hit = cache.get(key);
   if (!hit) {
-    if (cache.size > 24) cache.clear();
+    if (cache.size > 40) cache.clear();
     hit = make();
     cache.set(key, hit);
   }
   return hit;
+}
+
+/** A generated, cached texture: `paint` must be a pure function of the key. */
+export function cachedTexture(key: string, width: number, height: number, paint: (ctx: Ctx2D) => void): DrawableImage {
+  return cached(key, () => {
+    const { canvas, ctx } = factory(width, height);
+    paint(ctx);
+    return canvas;
+  });
 }
 
 export function parseHex(color: string): [number, number, number] {

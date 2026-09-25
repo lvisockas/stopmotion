@@ -45,12 +45,24 @@ try {
   await page.waitForSelector('[data-testid=preview-canvas]');
   step(`editor loaded (${env.executablePath})`);
 
-  // first visit opens the AI-news demo built from headline screenshots
+  // first visit opens the family-trip story; settled slides export like any other
+  await page.waitForFunction(() => document.querySelectorAll('.slides li').length === 10);
+  step('family-trip demo: 10 story slides');
+  await page.click('.slides li:nth-child(2)');
+  {
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.click('[data-testid=export-one]')]);
+    await dl.saveAs(`${OUT}/story-${dl.suggestedFilename()}`);
+    assertSpec(await inspectMp4(new Uint8Array(readFileSync(`${OUT}/story-${dl.suggestedFilename()}`))), { duration: 9 });
+    step(`story slide export: ${dl.suggestedFilename()} (settled opening, scene, props, bubbles) matches spec`);
+  }
+
+  // the AI-news demo is one pick away
   const news = JSON.parse(readFileSync('public/demo/news.json', 'utf8'));
+  await page.selectOption('.demo-picker', 'ai-news');
   const expected = 1 + Math.min(9, news.headlines.length);
   await page.waitForFunction((n) => document.querySelectorAll('.slides li').length === n, expected);
   await page.waitForFunction(() => document.querySelectorAll('.images li img').length === 3);
-  step(`demo project: cover + ${expected - 1} headline slides`);
+  step(`AI-news demo: cover + ${expected - 1} headline slides`);
   await page.screenshot({ path: `${OUT}/demo.png` });
 
   // a comic slide (characters + speech bubbles) exports like any other
@@ -60,7 +72,7 @@ try {
     const [dl] = await Promise.all([page.waitForEvent('download'), page.click('[data-testid=export-one]')]);
     await dl.saveAs(`${OUT}/comic-${dl.suggestedFilename()}`);
     assertSpec(await inspectMp4(new Uint8Array(readFileSync(`${OUT}/comic-${dl.suggestedFilename()}`))), { duration: 9 });
-    step(`comic slide export: ${dl.suggestedFilename()} (9 s, bubbles + characters) matches spec`);
+    step(`comic slide export: ${dl.suggestedFilename()} matches spec`);
   }
 
   await page.click('text=New project');

@@ -1,4 +1,4 @@
-import { MAX_CAST, MAX_DURATION, MIN_DURATION, randomSeed, STOP_MOTION_RATES, type Slide, type StopMotionRate } from '../render';
+import { MAX_CAST, MAX_DURATION, PROP_KINDS, SCENES, MIN_DURATION, randomSeed, STOP_MOTION_RATES, type Slide, type StopMotionRate } from '../render';
 
 let counter = 0;
 export function newId(prefix = 's'): string {
@@ -23,6 +23,9 @@ export function createSlide(partial: Partial<Slide> = {}): Slide {
     effects: { paper: true, grain: true, vignette: true, flicker: false },
     cast: [],
     lines: [],
+    scene: 'none',
+    props: [],
+    intro: 'drop',
     ...partial,
   };
 }
@@ -35,7 +38,12 @@ export function sanitizeSlide(raw: Partial<Slide>): Slide {
   if (!STOP_MOTION_RATES.includes(s.stopMotionFps as StopMotionRate)) s.stopMotionFps = 12;
   s.seed = s.seed >>> 0;
   s.images = Array.isArray(s.images) ? s.images.slice(0, 20) : [];
-  s.cast = Array.isArray(s.cast) ? s.cast.slice(0, MAX_CAST).map((c) => ({ seed: c.seed >>> 0, name: String(c.name ?? '') })) : [];
+  s.cast = Array.isArray(s.cast)
+    ? s.cast.slice(0, MAX_CAST).map((c) => ({ ...c, seed: c.seed >>> 0, name: String(c.name ?? '') }))
+    : [];
+  if (!SCENES.includes(s.scene)) s.scene = 'none';
+  s.props = Array.isArray(s.props) ? s.props.filter((p) => PROP_KINDS.includes(p.kind)).slice(0, 16) : [];
+  if (s.intro !== 'settled') s.intro = 'drop';
   s.lines = Array.isArray(s.lines)
     ? s.lines.map((l) => ({ speaker: Math.max(0, Math.floor(Number(l.speaker) || 0)), text: String(l.text ?? '') }))
     : [];

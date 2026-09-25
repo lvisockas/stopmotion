@@ -4,6 +4,7 @@ import { ACCEPTED_TYPES } from '../assets/import';
 import { MAX_DURATION, MIN_DURATION, MIN_HOLD_SECONDS, STOP_MOTION_RATES, type Slide, type StopMotionRate } from '../render';
 import type { Action } from '../state/project';
 import { ComicPanel } from './ComicPanel';
+import { ScenePanel } from './ScenePanel';
 
 interface Props {
   slide: Slide;
@@ -124,6 +125,8 @@ export function Inspector({ slide, dispatch, onFiles, disabled }: Props) {
             </Field>
           </div>
         </section>
+
+        <ScenePanel slide={slide} dispatch={dispatch} />
 
         <ComicPanel slide={slide} dispatch={dispatch} />
 

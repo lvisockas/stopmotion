@@ -5,7 +5,7 @@ import { importImageFiles, settleImports } from '../assets/import';
 import { checkEncoderSupport, encodeSlide, type SupportResult } from '../export/encoder';
 import { downloadBytes, slideFileName, zipVideos } from '../export/zip';
 import type { Slide } from '../render';
-import { loadNewsDemo } from '../demo';
+import { DEMOS } from '../demos';
 import { collectGarbage, hasSavedProject, loadProject, resetStorage, saveProject } from '../state/persist';
 import { freshProject, reducer } from '../state/project';
 import type { ExportState } from './exportState';
@@ -27,7 +27,7 @@ export function App() {
     (async () => {
       await loadFonts();
       // first visit: open the AI-news demo built from headline screenshots
-      const demo = hasSavedProject() ? null : await loadNewsDemo().catch(() => null);
+      const demo = hasSavedProject() ? null : await DEMOS[0].load().catch(() => null);
       dispatch({ type: 'load', project: demo ?? (await loadProject()) });
       setAssetsVersion((v) => v + 1);
       setLoaded(true);
@@ -94,10 +94,11 @@ export function App() {
     }
   }
 
-  async function loadDemo() {
-    if (!confirm('Replace the current project with the AI news demo?')) return;
+  async function loadDemo(id: string) {
+    const entry = DEMOS.find((d) => d.id === id);
+    if (!entry || !confirm(`Replace the current project with the "${entry.name}" demo?`)) return;
     await resetStorage();
-    const demo = await loadNewsDemo();
+    const demo = await entry.load();
     if (!demo) return setNotice('The demo files could not be loaded.');
     dispatch({ type: 'load', project: demo });
     setAssetsVersion((v) => v + 1);
@@ -119,7 +120,11 @@ export function App() {
       <header>
         <h1>Stop-motion carousel</h1>
         <div className="header-actions">
-          <button type="button" onClick={loadDemo} disabled={busy}>AI news demo</button>
+          <select className="demo-picker" value="" disabled={busy} aria-label="Load a demo"
+            onChange={(e) => loadDemo(e.target.value)}>
+            <option value="" disabled>Load demo…</option>
+            {DEMOS.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
           <button type="button" onClick={newProject} disabled={busy}>New project</button>
           <button type="button" data-testid="export-one" disabled={!canExport}
             onClick={() => exportSlides([slide], false)}>Export this slide</button>

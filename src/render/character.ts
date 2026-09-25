@@ -1,5 +1,5 @@
 import { mulberry32, hashInts } from './prng';
-import type { Ctx2D } from './types';
+import type { Ctx2D, LookOverrides } from './types';
 
 /**
  * Original construction-paper cutout kids: big round head, two touching oval
@@ -33,9 +33,11 @@ export interface Look {
   /** Head outline wobble, so each cutout looks hand-cut. */
   wobble: number[];
   buttons: boolean;
+  beard: boolean;
+  longHair: boolean;
 }
 
-export function lookFor(seed: number): Look {
+export function lookFor(seed: number, overrides: LookOverrides = {}): Look {
   const rng = mulberry32(hashInts(seed, 0x5eed));
   const pick = <T,>(a: T[]) => a[Math.floor(rng() * a.length)];
   return {
@@ -47,6 +49,9 @@ export function lookFor(seed: number): Look {
     style: pick(STYLES),
     wobble: Array.from({ length: 28 }, () => (rng() - 0.5) * 0.035),
     buttons: rng() < 0.5,
+    beard: false,
+    longHair: false,
+    ...overrides,
   };
 }
 
@@ -139,10 +144,34 @@ export function drawCharacter(ctx: Ctx2D, look: Look, w: number, h: number, pose
     ctx.fill();
     outline(ctx, s);
   }
+  if (look.longHair) {
+    // falls behind the head to the shoulders
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.98, hy - r * 0.2);
+    ctx.quadraticCurveTo(-r * 1.18, hy + r * 0.9, -r * 0.72, bodyTop + 30 * s);
+    ctx.lineTo(r * 0.72, bodyTop + 30 * s);
+    ctx.quadraticCurveTo(r * 1.18, hy + r * 0.9, r * 0.98, hy - r * 0.2);
+    ctx.closePath();
+    ctx.fillStyle = look.hair;
+    ctx.fill();
+    outline(ctx, s);
+  }
   blob(ctx, 0, hy, r, look.wobble);
   ctx.fillStyle = look.skin;
   ctx.fill();
   outline(ctx, s);
+
+  if (look.beard) {
+    // chin-strap beard, mouth sits on top of it
+    ctx.beginPath();
+    ctx.arc(0, hy, r * 0.99, Math.PI * 0.08, Math.PI * 0.92);
+    ctx.quadraticCurveTo(-r * 0.5, hy + r * 0.25, 0, hy + r * 0.3);
+    ctx.quadraticCurveTo(r * 0.5, hy + r * 0.25, Math.cos(Math.PI * 0.08) * r * 0.99, hy + Math.sin(Math.PI * 0.08) * r * 0.99);
+    ctx.closePath();
+    ctx.fillStyle = look.hair;
+    ctx.fill();
+    outline(ctx, s);
+  }
 
   // headwear
   const domeTop = (fill: string) => {
@@ -247,6 +276,15 @@ export function drawCharacter(ctx: Ctx2D, look: Look, w: number, h: number, pose
   } else {
     ctx.beginPath();
     ctx.moveTo(mx - 15 * s, my - 2 * s);
+    if (look.beard) {
+      ctx.quadraticCurveTo(mx, my + 5 * s, mx + 15 * s, my - 2 * s);
+      ctx.lineWidth = 7 * s;
+      ctx.strokeStyle = look.skin;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(mx - 15 * s, my - 2 * s);
+    }
     ctx.quadraticCurveTo(mx, my + 5 * s, mx + 15 * s, my - 2 * s);
     ctx.lineWidth = 3.2 * s;
     ctx.strokeStyle = INK;

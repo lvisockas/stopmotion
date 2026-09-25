@@ -19,10 +19,30 @@ npm run build        # type-check + static build into dist/
 npm run preview      # serve dist/ locally
 ```
 
+## Demos
+
+A first visit opens **Family trip: Greenland 2026**, a ten-slide cut-paper
+story (Dad, Mom and their little boy) from Vilnius to Ilulissat, Nuuk and
+Copenhagen and home, with the date and place on every slide. **Load demo…**
+in the header switches to it or to the AI-news carousel below.
+
+## Story slides: scenes, props, settled openings
+
+The inspector's **Scene** section gives a slide a cut-paper backdrop (sky,
+icefjord, coastal town, town under a mountain, snowfield, aurora night, room
+with a view, canal houses) and story props (plane, boat, iceberg, suitcase,
+Greenland flag, sled dog and hut, table, cake, coffee, pumpkin, cargo bike,
+goat, falling snow). Props sit **behind** or **in front of** the characters;
+**part of the set** props (furniture) are in place from the first frame.
+
+**Opening: Start settled** is for slides that continue a story: the backdrop,
+labels and characters are already there on frame 0, and only the props drop
+in as the new beat before the dialogue plays. The first slide of a story
+uses **Toss everything in**.
+
 ## Default project: AI news
 
-On a first visit (nothing saved yet) the editor opens a demo carousel built
-from real headline screenshots: a cover with three of them, then one slide
+The AI-news demo is a carousel built from real headline screenshots: a cover with three of them, then one slide
 per headline credited to its publisher. **AI news demo** in the header
 reloads it; **New project** starts blank.
 

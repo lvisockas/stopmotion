@@ -1,7 +1,8 @@
 import { rngFor, signed, STREAM } from './prng';
 import { CHARACTER_H, CHARACTER_W, lookFor, type Look } from './character';
 import { BUBBLE_SPEC, layoutText, SUBTITLE_SPEC, TITLE_SPEC, type TextBlock } from './text';
-import { HEIGHT, SAFE_MARGIN, WIDTH, type Ctx2D, type Slide, type SlideImage } from './types';
+import { PROP_SIZE } from './props';
+import { HEIGHT, SAFE_MARGIN, WIDTH, type Ctx2D, type Prop, type Slide, type SlideImage } from './types';
 
 export interface Rect {
   x: number;
@@ -48,7 +49,27 @@ export interface CharacterElement {
   gaze: number;
 }
 
-export type Element = ImageElement | TextElement | CharacterElement;
+export interface PropElement {
+  kind: 'prop';
+  prop: Prop;
+  place: Placement;
+}
+
+export type Element = ImageElement | TextElement | CharacterElement | PropElement;
+
+/** Paint order: back props, screenshots, characters, front props, text labels. */
+export function zOf(el: Element): number {
+  switch (el.kind) {
+    case 'prop':
+      return el.prop.layer === 'back' ? 0 : 3;
+    case 'image':
+      return 1;
+    case 'character':
+      return 2;
+    case 'text':
+      return 4;
+  }
+}
 
 /** A speech bubble at rest (before any stacking with the previous bubble). */
 export interface Bubble {
@@ -220,14 +241,19 @@ function placeCast(slide: Slide): CharacterElement[] {
   const cy = SAFE.y + SAFE.h - CHARACTER_H / 2;
   return slide.cast.slice(0, n).map((member, index) => {
     const rng = rngFor(slide.seed, STREAM.layout, 2000 + index);
-    const cx = SAFE.x + SAFE.w * slots[index];
+    const frac = member.x ?? (SAFE.x + SAFE.w * slots[index]) / WIDTH;
+    const cx = frac * WIDTH;
+    const scale = Math.min(1.4, Math.max(0.4, member.scale ?? 1));
+    const w = CHARACTER_W * scale;
+    const h = CHARACTER_H * scale;
     // everyone faces the middle of the group
-    const gaze = n === 1 ? 0 : slots[index] < 0.5 ? 1 : -1;
+    const gaze = n === 1 ? 0 : frac < 0.45 ? 1 : frac > 0.55 ? -1 : index === 0 ? 1 : -1;
     const place = containPlacement(
-      { cx: cx + signed(rng) * 10, cy, w: CHARACTER_W, h: CHARACTER_H, rot: signed(rng) * MAX_CHARACTER_TILT },
+      // feet stay on the floor whatever the size
+      { cx: cx + signed(rng) * 10, cy: cy + CHARACTER_H / 2 - h / 2, w, h, rot: signed(rng) * MAX_CHARACTER_TILT },
       SAFE,
     );
-    return { kind: 'character' as const, index, look: lookFor(member.seed), place, gaze };
+    return { kind: 'character' as const, index, look: lookFor(member.seed, member.look), place, gaze };
   });
 }
 
@@ -245,6 +271,22 @@ function placeBubbles(ctx: Ctx2D, slide: Slide, cast: CharacterElement[]): (Bubb
     const x = Math.min(Math.max(who.place.cx - w / 2 + who.gaze * 40, SAFE.x), SAFE.x + SAFE.w - w);
     return { speaker: line.speaker, block, x, bottom: top - 26, w, h, tipX: who.place.cx + who.gaze * 30, tipY: top + 6 };
   });
+}
+
+function placeProps(slide: Slide): PropElement[] {
+  return slide.props
+    .filter((prop) => prop.kind !== 'snow')
+    .map((prop, i) => {
+      const rng = rngFor(slide.seed, STREAM.layout, 3000 + i);
+      const [bw, bh] = PROP_SIZE[prop.kind];
+      const scale = Math.min(3, Math.max(0.2, prop.scale || 1));
+      return {
+        kind: 'prop' as const,
+        prop,
+        // props may bleed off the frame on purpose (a plane flying in), so no containment
+        place: { cx: prop.x * WIDTH, cy: prop.y * HEIGHT, w: bw * scale, h: bh * scale, rot: signed(rng) * 0.04 },
+      };
+    });
 }
 
 /** Where everything comes to rest. Pure in (slide, ctx font metrics). */
@@ -275,5 +317,7 @@ export function computeLayout(ctx: Ctx2D, slide: Slide): Layout {
   elements.push(...placeImages(slide, imageArea));
   if (subtitle && !cast.length) elements.push(subtitle);
   elements.push(...cast);
+  // story props drop last: they are the beats of the scene
+  elements.push(...placeProps(slide));
   return { elements, imageArea, bubbles };
 }

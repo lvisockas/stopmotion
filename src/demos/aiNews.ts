@@ -1,7 +1,7 @@
-import { importImageBlob, settleImports } from './assets/import';
-import { createSlide } from './model/slide';
-import type { CastMember, Line, Slide, SlideImage } from './render';
-import type { Project } from './state/project';
+import { importImageBlob, settleImports } from '../assets/import';
+import { createSlide } from '../model/slide';
+import type { CastMember, Line, Slide, SlideImage } from '../render';
+import type { Project } from '../state/project';
 
 /** Shape of public/demo/news.json, written by scripts/scrape-news.mjs. */
 interface NewsManifest {
