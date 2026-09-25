@@ -8,19 +8,28 @@ export const pendingImports = new Set<string>();
 
 export const ACCEPTED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
 
+/** Stores one image blob in IndexedDB and decodes it. Call settleImports once it is in the project. */
+export async function importImageBlob(blob: Blob, name: string): Promise<SlideImage> {
+  const id = newId('img');
+  pendingImports.add(id);
+  try {
+    const img = await decodeBlob(id, blob);
+    await putBlob(id, blob);
+    return { id, name, width: img.naturalWidth, height: img.naturalHeight };
+  } catch (e) {
+    pendingImports.delete(id);
+    throw e;
+  }
+}
+
 /** Stores each file in IndexedDB and decodes it. Non-images are skipped, in order. */
 export async function importImageFiles(files: Iterable<File>): Promise<SlideImage[]> {
   const out: SlideImage[] = [];
   for (const file of files) {
     if (!ACCEPTED_TYPES.includes(file.type)) continue;
-    const id = newId('img');
-    pendingImports.add(id);
     try {
-      const img = await decodeBlob(id, file);
-      await putBlob(id, file);
-      out.push({ id, name: file.name, width: img.naturalWidth, height: img.naturalHeight });
+      out.push(await importImageBlob(file, file.name));
     } catch (e) {
-      pendingImports.delete(id);
       console.warn(`Could not read ${file.name}`, e);
     }
   }

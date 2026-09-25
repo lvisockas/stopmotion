@@ -5,7 +5,8 @@ import { importImageFiles, settleImports } from '../assets/import';
 import { checkEncoderSupport, encodeSlide, type SupportResult } from '../export/encoder';
 import { downloadBytes, slideFileName, zipVideos } from '../export/zip';
 import type { Slide } from '../render';
-import { collectGarbage, loadProject, resetStorage, saveProject } from '../state/persist';
+import { loadNewsDemo } from '../demo';
+import { collectGarbage, hasSavedProject, loadProject, resetStorage, saveProject } from '../state/persist';
 import { freshProject, reducer } from '../state/project';
 import type { ExportState } from './exportState';
 import { Inspector } from './Inspector';
@@ -25,7 +26,9 @@ export function App() {
   useEffect(() => {
     (async () => {
       await loadFonts();
-      dispatch({ type: 'load', project: await loadProject() });
+      // first visit: open the AI-news demo built from headline screenshots
+      const demo = hasSavedProject() ? null : await loadNewsDemo().catch(() => null);
+      dispatch({ type: 'load', project: demo ?? (await loadProject()) });
       setAssetsVersion((v) => v + 1);
       setLoaded(true);
     })().catch((e) => setNotice(`Could not load the saved project: ${e}`));
@@ -91,6 +94,16 @@ export function App() {
     }
   }
 
+  async function loadDemo() {
+    if (!confirm('Replace the current project with the AI news demo?')) return;
+    await resetStorage();
+    const demo = await loadNewsDemo();
+    if (!demo) return setNotice('The demo files could not be loaded.');
+    dispatch({ type: 'load', project: demo });
+    setAssetsVersion((v) => v + 1);
+    setExports({});
+  }
+
   async function newProject() {
     if (!confirm('Start a new project? This removes all slides and images.')) return;
     await resetStorage();
@@ -106,6 +119,7 @@ export function App() {
       <header>
         <h1>Stop-motion carousel</h1>
         <div className="header-actions">
+          <button type="button" onClick={loadDemo} disabled={busy}>AI news demo</button>
           <button type="button" onClick={newProject} disabled={busy}>New project</button>
           <button type="button" data-testid="export-one" disabled={!canExport}
             onClick={() => exportSlides([slide], false)}>Export this slide</button>

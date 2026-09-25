@@ -45,6 +45,17 @@ try {
   await page.waitForSelector('[data-testid=preview-canvas]');
   step(`editor loaded (${env.executablePath})`);
 
+  // first visit opens the AI-news demo built from headline screenshots
+  const news = JSON.parse(readFileSync('public/demo/news.json', 'utf8'));
+  const expected = 1 + Math.min(9, news.headlines.length);
+  await page.waitForFunction((n) => document.querySelectorAll('.slides li').length === n, expected);
+  await page.waitForFunction(() => document.querySelectorAll('.images li img').length === 3);
+  step(`demo project: cover + ${expected - 1} headline slides`);
+  await page.screenshot({ path: `${OUT}/demo.png` });
+
+  await page.click('text=New project');
+  await page.waitForFunction(() => document.querySelectorAll('.slides li').length === 1);
+
   const files = [0, 1, 2].map(placeholderPng);
   await page.setInputFiles('[data-testid=file-input]', files);
   await page.waitForFunction(() => document.querySelectorAll('.images li').length === 3);

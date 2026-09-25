@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:e2e": "node tests/e2e/export.e2e.mjs",
     "test:harness": "node tests/e2e/harness.e2e.mjs",
-    "get-chrome": "sh tests/e2e/get-chrome.sh"
+    "get-chrome": "sh tests/e2e/get-chrome.sh",
+    "scrape": "node scripts/scrape-news.mjs"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",

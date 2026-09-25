@@ -16,6 +16,14 @@ export function saveProject(p: Project): void {
 }
 
 /** Loads the saved project and decodes every image it references. Missing blobs are dropped. */
+export const hasSavedProject = () => {
+  try {
+    return localStorage.getItem(KEY) !== null;
+  } catch {
+    return false;
+  }
+};
+
 export async function loadProject(): Promise<Project> {
   let project = freshProject();
   try {

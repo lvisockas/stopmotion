@@ -19,6 +19,22 @@ npm run build        # type-check + static build into dist/
 npm run preview      # serve dist/ locally
 ```
 
+## Default project: AI news
+
+On a first visit (nothing saved yet) the editor opens a demo carousel built
+from real headline screenshots: a cover with three of them, then one slide
+per headline credited to its publisher. **AI news demo** in the header
+reloads it; **New project** starts blank.
+
+The screenshots come from `npm run scrape` (`scripts/scrape-news.mjs`): it
+reads the AI feeds of TechCrunch, The Verge, MIT Technology Review, Wired,
+the Guardian and Ars Technica, keeps the newest AI headline from each, opens
+the article in headless Chrome, clears cookie banners and sticky bars, and
+screenshots the headline block (h1 plus standfirst / byline, never the lead
+image). Output: `public/demo/*.jpg` + `public/demo/news.json`. Commit them to
+update the live demo. The screenshots show the publishers' own pages and
+remain theirs; each slide names its source.
+
 ## How it works
 
 - `src/render/` is framework-free. `drawFrame(ctx, slide, frameIndex, assets)`
