@@ -13,20 +13,20 @@ const FAMILY: CastMember[] = [
     seed: 101,
     name: 'Dad',
     x: 0.2,
-    look: { skin: '#f2c7a1', coat: '#2f67b3', hat: '#c8352b', mitten: '#56606b', hair: '#6b3e1f', style: 'beanie', beard: true },
+    look: { skin: '#f2c7a1', coat: '#ec7a23', hat: '#27415f', mitten: '#56606b', hair: '#e3bb57', style: 'cap' },
   },
   {
     seed: 202,
     name: 'Mom',
     x: 0.8,
-    look: { skin: '#f6d2b1', coat: '#c8352b', hat: '#3e8c4a', mitten: '#e8b52a', hair: '#e0b04a', style: 'striped', longHair: true },
+    look: { skin: '#f6d2b1', coat: '#8a5a36', hat: '#8a5a36', mitten: '#e8b52a', hair: '#e0b04a', style: 'bob', longHair: true },
   },
   {
     seed: 303,
     name: 'Boy',
     x: 0.5,
     scale: 0.66,
-    look: { skin: '#f6d2b1', coat: '#e8b52a', hat: '#2f67b3', mitten: '#c8352b', hair: '#e0b04a', style: 'beanie' },
+    look: { skin: '#f6d2b1', coat: '#2f67b3', hat: '#f07f24', mitten: '#c8352b', hair: '#e0b04a', style: 'beanie' },
   },
 ];
 const DAD = 0;

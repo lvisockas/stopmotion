@@ -252,6 +252,15 @@ export function drawFrame(ctx: Ctx2D, slide: Slide, frameIndex: number, assets: 
   const snow = slide.props.find((p) => p.kind === 'snow');
   if (snow) drawSnow(ctx, slide.seed, time, snow.scale || 1);
 
+  // on story slides everything is cut paper: lay fibre texture over the cutouts too
+  if (slide.scene !== 'none' && slide.effects.paper) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.globalAlpha = 0.55;
+    ctx.drawImage(paperTexture('#ffffff', 2), 0, 0);
+    ctx.restore();
+  }
+
   drawDialogue(ctx, slide, layout, schedule.lines, time, step);
 
   if (slide.effects.vignette) drawVignette(ctx);

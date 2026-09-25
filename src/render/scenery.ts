@@ -26,17 +26,12 @@ function layer(ctx: Ctx2D, fill: string, shadow = 0.22) {
   ctx.stroke();
 }
 
-function sky(ctx: Ctx2D, top: string, bottom: string, bands = 5) {
-  // stepped paper bands, not a smooth gradient
-  const lerp = (a: string, b: string, t: number) => {
-    const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
-    const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
-    return `rgb(${pa.map((v, i) => Math.round(v + (pb[i] - v) * t)).join(',')})`;
-  };
-  for (let i = 0; i < bands; i++) {
-    ctx.fillStyle = lerp(top, bottom, i / (bands - 1));
-    ctx.fillRect(0, (HEIGHT * 0.75 * i) / bands, WIDTH, HEIGHT);
-  }
+function sky(ctx: Ctx2D, top: string, bottom: string, _bands = 5) {
+  const g = ctx.createLinearGradient(0, 0, 0, HEIGHT * 0.8);
+  g.addColorStop(0, top);
+  g.addColorStop(1, bottom);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
 }
 
 /** A ridge line across the frame: jagged polygon from x=0 to WIDTH, closed down to the bottom. */
@@ -52,13 +47,46 @@ function ridge(ctx: Ctx2D, rng: Rng, baseY: number, amp: number, steps: number, 
   layer(ctx, fill, shadow);
 }
 
-function cloud(ctx: Ctx2D, x: number, y: number, s: number, fill = '#ffffff') {
-  ctx.beginPath();
-  for (const [dx, dy, r] of [[-60, 10, 42], [-10, -18, 56], [50, 4, 46], [0, 24, 40], [90, 22, 30], [-100, 26, 28]]) {
-    ctx.moveTo(x + dx * s + r * s, y + dy * s);
-    ctx.arc(x + dx * s, y + dy * s, r * s, 0, Math.PI * 2);
+/** Adds circles to the current path; filled together they make one silhouette. */
+function puffs(ctx: Ctx2D, circles: [number, number, number][]) {
+  for (const [x, y, r] of circles) {
+    ctx.moveTo(x + r, y);
+    ctx.arc(x, y, r, 0, Math.PI * 2);
   }
-  layer(ctx, fill, 0.12);
+}
+
+/** A cut-paper cloud: one silhouette (no seams between puffs), a soft shadow and a shaded underside. */
+function paperCloud(ctx: Ctx2D, circles: [number, number, number][], shade = '#dde9f1') {
+  const bottom = Math.max(...circles.map(([, y, r]) => y + r));
+  const top = Math.min(...circles.map(([, y, r]) => y - r));
+  ctx.save();
+  ctx.beginPath();
+  puffs(ctx, circles);
+  ctx.shadowColor = 'rgba(40,60,80,0.18)';
+  ctx.shadowBlur = 14;
+  ctx.shadowOffsetY = 6;
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+  ctx.restore();
+  ctx.save();
+  ctx.beginPath();
+  puffs(ctx, circles);
+  ctx.clip();
+  const g = ctx.createLinearGradient(0, top + (bottom - top) * 0.45, 0, bottom);
+  g.addColorStop(0, 'rgba(255,255,255,0)');
+  g.addColorStop(1, shade);
+  ctx.fillStyle = g;
+  ctx.fillRect(-100, top, WIDTH + 200, bottom - top);
+  ctx.restore();
+}
+
+function cloud(ctx: Ctx2D, x: number, y: number, s: number) {
+  paperCloud(
+    ctx,
+    [[-60, 10, 42], [-10, -18, 56], [50, 4, 46], [0, 24, 40], [90, 22, 30], [-100, 26, 28]].map(
+      ([dx, dy, r]) => [x + dx * s, y + dy * s, r * s] as [number, number, number],
+    ),
+  );
 }
 
 function iceberg(ctx: Ctx2D, rng: Rng, x: number, baseY: number, w: number, h: number) {
@@ -120,15 +148,13 @@ const SCENE_PAINTERS: Record<Exclude<SceneKind, 'none'>, (ctx: Ctx2D, rng: Rng) 
     ctx.arc(860, 230, 70, 0, Math.PI * 2);
     layer(ctx, '#ffd84d', 0.1);
     for (let i = 0; i < 5; i++) cloud(ctx, 100 + rng() * 880, 180 + rng() * 650, 0.7 + rng() * 0.6);
-    // cloud floor to stand on
-    ctx.beginPath();
-    for (let x = -40; x < WIDTH + 80; x += 90) {
-      const r = 70 + rng() * 40;
-      ctx.moveTo(x + r, 1230);
-      ctx.arc(x, 1230, r, 0, Math.PI * 2);
+    // cloud floor to stand on: two banks, the far one bluer
+    for (const [y, shade] of [[1170, '#cfe0ec'], [1250, '#e2edf4']] as const) {
+      const circles: [number, number, number][] = [];
+      for (let x = -60; x < WIDTH + 100; x += 80 + rng() * 30) circles.push([x, y, 60 + rng() * 45]);
+      circles.push([WIDTH / 2, y + 400, 480], [0, y + 250, 260], [WIDTH, y + 250, 260]);
+      paperCloud(ctx, circles, shade);
     }
-    ctx.rect(-20, 1230, WIDTH + 40, 200);
-    layer(ctx, '#ffffff', 0.18);
   },
   icefjord(ctx, rng) {
     sky(ctx, '#a9d4ec', '#e6f3fa');
@@ -257,7 +283,7 @@ const SCENE_PAINTERS: Record<Exclude<SceneKind, 'none'>, (ctx: Ctx2D, rng: Rng) 
     ctx.beginPath();
     ctx.rect(win.x, win.y, win.w, win.h);
     ctx.clip();
-    ctx.translate(win.x - 150, win.y - 170);
+    ctx.translate(win.x, win.y);
     ctx.scale(win.w / WIDTH, win.h / 900);
     SCENE_PAINTERS.icefjord(ctx, mulberry32(99));
     ctx.restore();

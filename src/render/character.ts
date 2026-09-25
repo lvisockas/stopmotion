@@ -136,8 +136,8 @@ export function drawCharacter(ctx: Ctx2D, look: Look, w: number, h: number, pose
   // head
   const r = 100 * s;
   const hy = bodyTop - 66 * s;
-  if (look.style === 'bob') {
-    // hair behind the head
+  if (look.style === 'bob' && !look.longHair) {
+    // hair behind the head (long hair draws its own)
     ctx.beginPath();
     ctx.ellipse(0, hy + 8 * s, r * 1.08, r * 1.02, 0, 0, Math.PI * 2);
     ctx.fillStyle = look.hair;
@@ -196,13 +196,29 @@ export function drawCharacter(ctx: Ctx2D, look: Look, w: number, h: number, pose
         for (let i = 0; i < 3; i++) ctx.fillRect(-r, hy - r + (14 + i * 22) * s, 2 * r, 9 * s);
         ctx.restore();
       }
-      // band
-      const bandY = hy - r * 0.44;
+      // band: a strip that follows the head's silhouette instead of a flat rectangle
+      const bandTop = hy - r * 0.5;
+      const bandH = 22 * s;
+      ctx.save();
       ctx.beginPath();
-      ctx.rect(-r * 0.9, bandY - 13 * s, r * 1.8, 20 * s);
+      ctx.arc(0, hy, r * 1.03, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.beginPath();
+      ctx.rect(-r * 1.1, bandTop, r * 2.2, bandH);
       ctx.fillStyle = look.style === 'striped' ? '#ffffff' : look.mitten;
       ctx.fill();
-      outline(ctx, s);
+      ctx.lineWidth = 3.2 * s;
+      ctx.strokeStyle = INK;
+      ctx.stroke();
+      // the curved ends of the band
+      ctx.beginPath();
+      ctx.rect(-r * 1.1, bandTop, r * 2.2, bandH);
+      ctx.clip();
+      ctx.beginPath();
+      ctx.arc(0, hy, r * 1.03, 0, Math.PI * 2);
+      ctx.lineWidth = 6.4 * s;
+      ctx.stroke();
+      ctx.restore();
       // pompom
       ctx.beginPath();
       ctx.arc(0, hy - r - 10 * s, 17 * s, 0, Math.PI * 2);
@@ -212,6 +228,22 @@ export function drawCharacter(ctx: Ctx2D, look: Look, w: number, h: number, pose
       break;
     }
     case 'cap': {
+      // hair showing under the cap: sides and a bit of fringe
+      ctx.beginPath();
+      for (const side of [-1, 1]) {
+        ctx.moveTo(side * r * 0.62, hy - r * 0.34);
+        ctx.quadraticCurveTo(side * r * 1.12, hy - r * 0.3, side * r * 0.96, hy + r * 0.12);
+        ctx.quadraticCurveTo(side * r * 0.86, hy - r * 0.12, side * r * 0.6, hy - r * 0.2);
+        ctx.closePath();
+      }
+      ctx.moveTo(-r * 0.55, hy - r * 0.3);
+      ctx.quadraticCurveTo(-r * 0.2, hy - r * 0.12, r * 0.05, hy - r * 0.3);
+      ctx.quadraticCurveTo(-r * 0.25, hy - r * 0.2, -r * 0.55, hy - r * 0.3);
+      ctx.fillStyle = look.hair;
+      ctx.fill();
+      ctx.lineWidth = 2.6 * s;
+      ctx.strokeStyle = INK;
+      ctx.stroke();
       domeTop(look.hat);
       ctx.beginPath();
       ctx.ellipse(g * r * 0.62, hy - r * 0.34, r * 0.62, 12 * s, 0, 0, Math.PI * 2);
@@ -238,10 +270,11 @@ export function drawCharacter(ctx: Ctx2D, look: Look, w: number, h: number, pose
       break;
     }
     case 'bob': {
-      // fringe
+      // side-swept fringe over the crown, parted to one side
       ctx.beginPath();
-      ctx.arc(0, hy, r * 1.01, Math.PI * 1.05, Math.PI * 1.95);
-      ctx.quadraticCurveTo(0, hy - r * 0.35, -r * 0.98, hy - r * 0.32);
+      ctx.arc(0, hy, r * 1.01, Math.PI * 1.03, Math.PI * 1.97);
+      ctx.quadraticCurveTo(r * 0.62, hy - r * 0.62, r * 0.08, hy - r * 0.5);
+      ctx.quadraticCurveTo(-r * 0.62, hy - r * 0.42, -r * 0.99, hy - r * 0.08);
       ctx.closePath();
       ctx.fillStyle = look.hair;
       ctx.fill();
