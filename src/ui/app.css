@@ -98,7 +98,8 @@ main { flex: 1; display: grid; grid-template-columns: 150px 1fr 320px; min-heigh
 .inspector fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .inspector section { padding: 14px 16px; border-bottom: 1px solid var(--line); }
 .inspector h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 10px; }
-.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; flex: 1; }
+.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; flex: 1; min-width: 0; }
+.field select { width: 100%; min-width: 0; }
 .field .label { font-weight: 500; }
 .field .hint { font-size: 12px; color: var(--muted); }
 .field textarea, .field select, .field input[type='number'] {
@@ -137,7 +138,7 @@ main { flex: 1; display: grid; grid-template-columns: 150px 1fr 320px; min-heigh
 .prop-head { display: flex; gap: 4px; }
 .prop-head select { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 4px; background: #fff; padding: 3px; }
 .prop-head button { padding: 0 6px; font-size: 12px; }
-.prop-sliders { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 10px; margin-top: 6px; font-size: 12px; color: var(--muted); }
+.prop-sliders { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2px 10px; margin-top: 6px; font-size: 12px; color: var(--muted); }
 .prop-sliders label { display: flex; align-items: center; gap: 4px; }
 .prop-sliders input[type='range'] { flex: 1; min-width: 0; }
 
